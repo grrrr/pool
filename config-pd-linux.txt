@@ -16,7 +16,7 @@ FLEXTPATH=/usr/local/lib/pd/flext
 # where should flext libraries be built?
 TARGDIR=./pd-linux
 
-# where should py/pyext be installed?
+# where should the external be installed?
 # (leave blank to omit installation)
 INSTPATH=/usr/local/lib/pd/extra
 

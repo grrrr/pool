@@ -19,7 +19,7 @@ FLEXTPATH=/usr/local/pd/flext
 # where should flext libraries be built?
 TARGDIR=./pd-darwin
 
-# where should py/pyext be installed?
+# where should pool be installed?
 # (leave blank to omit installation)
 INSTPATH=/usr/local/pd/extra
 
