@@ -37,9 +37,10 @@ protected:
 	void m_svdir(I argc,const A *argv);		// save current dir
 
 	void m_set(I argc,const A *argv);
-	void m_clr(const S *sym);
+	void m_clr(I argc,const A *argv);
 	void m_clrall();
-	void m_get(const S *sym);
+	void m_clrrec();
+	void m_get(I argc,const A *argv);
 	void m_getall();
 
 	// load/save from/to file
@@ -51,6 +52,9 @@ protected:
 	void m_send(I argc,const A *argv);
 
 private:
+	static BL KeyChk(const t_atom &a);
+	V ToOutAtom(I ix,const t_atom &a);
+
 	BL priv;
 	pooldata *pl;
 	AtomList curdir;
@@ -70,9 +74,10 @@ private:
 	FLEXT_CALLBACK(m_rmdir)
 	FLEXT_CALLBACK_V(m_svdir)
 	FLEXT_CALLBACK_V(m_set)
-	FLEXT_CALLBACK_S(m_clr)
+	FLEXT_CALLBACK_V(m_clr)
 	FLEXT_CALLBACK(m_clrall)
-	FLEXT_CALLBACK_S(m_get)
+	FLEXT_CALLBACK(m_clrrec)
+	FLEXT_CALLBACK_V(m_get)
 	FLEXT_CALLBACK(m_getall)
 	FLEXT_CALLBACK_V(m_load)
 	FLEXT_CALLBACK_V(m_save)
@@ -100,7 +105,8 @@ pool::pool(I argc,const A *argv)
 	SetPool(argc >= 1 && IsSymbol(argv[0])?GetSymbol(argv[0]):NULL);
 
 	AddInAnything();
-	AddOutAnything();
+	AddOutList();
+	AddOutSymbol();
 	AddOutBang();
 	SetupInOut();
 
@@ -113,6 +119,7 @@ pool::pool(I argc,const A *argv)
 	FLEXT_ADDMETHOD_(0,"set",m_set);
 	FLEXT_ADDMETHOD_(0,"clr",m_clr);
 	FLEXT_ADDMETHOD_(0,"clrall",m_clrall);
+	FLEXT_ADDMETHOD_(0,"clrrec",m_clrrec);
 	FLEXT_ADDMETHOD_(0,"get",m_get);
 	FLEXT_ADDMETHOD_(0,"getall",m_getall);
 	FLEXT_ADDMETHOD_(0,"load",m_load);
@@ -157,7 +164,7 @@ void pool::m_pool(I argc,const A *argv)
 {
 	const S *s = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - pool: superfluous arguments omitted",thisName());
+		if(argc > 1) post("%s - pool: superfluous arguments ignored",thisName());
 		s = GetASymbol(argv[0]);
 		if(!s) post("%s - pool: invalid pool name, pool set to private",thisName());
 	}
@@ -199,7 +206,7 @@ void pool::m_svdir(I argc,const A *argv)
 {
 	const C *flnm = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - svdir: superfluous arguments omitted",thisName());
+		if(argc > 1) post("%s - svdir: superfluous arguments ignored",thisName());
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
 	}
 
@@ -211,33 +218,54 @@ void pool::m_svdir(I argc,const A *argv)
 
 void pool::m_set(I argc,const A *argv)
 {
-	const S *key = NULL;
-	if(argc && IsSymbol(argv[0])) key = GetSymbol(argv[0]);
-
-	if(!key)
-		post("%s - set: invalid key given",thisName());
-	else if(!pl->Set(curdir,key,new AtomList(argc-1,argv+1)))
+	if(!argc || !KeyChk(argv[0])) {
+		post("%s - set: invalid key",thisName());
+		return;
+	}
+	
+	if(!pl->Set(curdir,argv[0],new AtomList(argc-1,argv+1)))
 		post("%s - set: value couldn't be set",thisName());
 }
 
-void pool::m_clr(const S *key)
+void pool::m_clr(I argc,const A *argv)
 {
-	if(!pl->Clr(curdir,key))
+	if(!argc || !KeyChk(argv[0])) {
+		post("%s - clr: invalid key",thisName());
+		return;
+	}
+	else if(argc > 1) 
+		post("%s - clr: superfluous arguments ignored",thisName());
+
+	if(!pl->Clr(curdir,argv[0]))
 		post("%s - clr: value couldn't be cleared",thisName());
 }
 
 void pool::m_clrall()
 {
-	if(!pl->ClrAll(curdir))
+	if(!pl->ClrAll(curdir,false))
 		post("%s - clrall: values couldn't be cleared",thisName());
 }
 
-void pool::m_get(const S *key)
+void pool::m_clrrec()
 {
-	AtomList *r = pl->Get(curdir,key);
+	if(!pl->ClrAll(curdir,true))
+		post("%s - clrrec: values couldn't be cleared",thisName());
+}
+
+void pool::m_get(I argc,const A *argv)
+{
+	if(!argc || !KeyChk(argv[0])) {
+		post("%s - get: invalid key",thisName());
+		return;
+	}
+	else if(argc > 1) 
+		post("%s - get: superfluous arguments ignored",thisName());
+
+	AtomList *r = pl->Get(curdir,argv[0]);
 	if(!r) 
 		post("%s - get: no corresponding value found",thisName());
 	else {
+		ToOutAtom(1,argv[0]);
 		ToOutList(0,*r);
 		delete r;
 	}
@@ -245,14 +273,19 @@ void pool::m_get(const S *key)
 
 void pool::m_getall()
 {
+	A *k;
 	AtomList *r;
-	I cnt = pl->GetAll(curdir,r);
+	I cnt = pl->GetAll(curdir,k,r);
 	if(!r) 
 		post("%s - getall: no corresponding values found",thisName());
 	else {
-		for(I i = 0; i < cnt; ++i) ToOutList(0,r[i]);
+		for(I i = 0; i < cnt; ++i) {
+			ToOutAtom(1,k[i]);
+			ToOutList(0,r[i]);
+		}
+		delete[] k;
 		delete[] r;
-		ToOutBang(1);
+		ToOutBang(2);
 	}
 }
 
@@ -294,6 +327,21 @@ void pool::m_send(I argc,const A *argv)
 	post("%s - send: sorry, not implemented",thisName());
 }
 
+
+BL pool::KeyChk(const t_atom &a)
+{
+	return IsSymbol(a) || IsFloat(a) || IsInt(a);
+}
+
+V pool::ToOutAtom(I ix,const t_atom &a)
+{
+	if(IsSymbol(a))
+		ToOutSymbol(ix,GetSymbol(a));
+	else if(IsFloat(a))
+		ToOutFloat(ix,GetFloat(a));
+	else if(IsInt(a))
+		ToOutInt(ix,GetInt(a));
+}
 
 
 
