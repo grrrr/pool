@@ -56,14 +56,14 @@ public:
 	pooldir *GetDir(I argc,const A *argv,BL rmv = NULL);
 	pooldir *GetDir(const AtomList &d,BL rmv = NULL) { return GetDir(d.Count(),d.Atoms(),rmv); }
 	BL DelDir(const AtomList &d);
-	V AddDir(I argc,const A *argv);
-	V AddDir(const AtomList &d) { AddDir(d.Count(),d.Atoms()); }
+	pooldir *AddDir(I argc,const A *argv);
+	pooldir *AddDir(const AtomList &d) { return AddDir(d.Count(),d.Atoms()); }
 	V SetVal(const A &key,AtomList *data);
 	V ClrVal(const A &key) { SetVal(key,NULL); }
 	AtomList *GetVal(const A &key);
 	I GetAll(A *&keys,AtomList *&lst);
 	I GetSub(const t_atom **&dirs);
-	BL LdDir(istream &is,I depth);
+	BL LdDir(istream &is,I depth,BL mkdir);
 	BL SvDir(ostream &os,I depth,const AtomList &dir = AtomList());
 
 	A dir;
@@ -94,7 +94,7 @@ public:
 	I GetAll(const AtomList &d,A *&keys,AtomList *&lst);
 	I GetSub(const AtomList &d,const t_atom **&dirs);
 
-	BL LdDir(const AtomList &d,const C *flnm,I depth);
+	BL LdDir(const AtomList &d,const C *flnm,I depth,BL mkdir = true);
 	BL SvDir(const AtomList &d,const C *flnm,I depth,BL absdir);
 	BL Load(const C *flnm) { return LdDir(AtomList(),flnm,-1); }
 	BL Save(const C *flnm) { return SvDir(AtomList(),flnm,-1,true); }

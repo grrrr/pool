@@ -12,8 +12,8 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include <string.h>
 #include <fstream.h>
-#include <iostream.h>
-
+#include <ctype.h>
+#include <stdlib.h>
 
 inline t_atom &SetAtom(t_atom &dst,const t_atom &src) { flext_base::CopyAtom(&dst,&src); return dst; }
 
@@ -93,9 +93,9 @@ V pooldir::Clear(BL rec,BL dironly)
 	if(!dironly && vals) { delete vals; vals = NULL; }
 }
 
-V pooldir::AddDir(I argc,const A *argv)
+pooldir *pooldir::AddDir(I argc,const A *argv)
 {
-	if(!argc) return;
+	if(!argc) return this;
 
 	I c = 1;
 	pooldir *prv = NULL,*ix = dirs;
@@ -113,7 +113,7 @@ V pooldir::AddDir(I argc,const A *argv)
 		ix = nd;
 	}
 
-	ix->AddDir(argc-1,argv+1);
+	return ix->AddDir(argc-1,argv+1);
 }
 
 pooldir *pooldir::GetDir(I argc,const A *argv,BL rmv)
@@ -234,11 +234,67 @@ I pooldir::GetSub(const A **&lst)
 	return cnt;
 }
 
-BL pooldir::LdDir(istream &is,I depth)
+
+static C *ReadAtom(C *c,A *a)
 {
-	return true;
+	// skip whitespace
+	while(*c && isspace(*c)) ++c;
+	if(!*c) return NULL;
+
+	const C *m = c; // remember position
+
+	// check for word type (s = 0,1,2 ... int,float,symbol)
+	I s = 0;
+	for(; *c && !isspace(*c); ++c) {
+		if(!isdigit(*c)) 
+			s = (*c != '.' || s == 1)?2:1;
+	}
+
+	if(a) {
+		switch(s) {
+		case 0: // integer
+#ifdef MAXMSP
+			a->a_type = A_LONG;
+			a->a_w.w_long = atol(m);
+			break;
+#endif
+		case 1: // float
+			a->a_type = A_FLOAT;
+			a->a_w.w_float = (F)atof(m);
+			break;
+		default: { // anything else is a symbol
+			C t = *c; *c = 0;
+			a->a_type = A_SYMBOL;
+			a->a_w.w_symbol = (S *)flext_base::MakeSymbol(m);
+			*c = t;
+			break;
+		}
+		}
+	}
+
+	return c;
 }
 
+static BL ReadAtoms(istream &is,AtomList &l,C del)
+{
+	C tmp[1024];
+	is.getline(tmp,sizeof tmp,del); 
+	if(is.eof() || !is.good()) return false;
+
+	I i,cnt;
+	C *t = tmp;
+	for(cnt = 0; ; ++cnt) {
+		t = ReadAtom(t,NULL);
+		if(!t) break;
+	}
+
+	l(cnt);
+	if(cnt) {
+		for(i = 0,t = tmp; i < cnt; ++i)
+			t = ReadAtom(t,&l[i]);
+	}
+	return true;
+}
 
 static V WriteAtom(ostream &os,const A &a)
 {
@@ -263,6 +319,35 @@ static V WriteAtoms(ostream &os,const AtomList &l)
 		WriteAtom(os,l[i]);
 		os << ' ';
 	}
+}
+
+BL pooldir::LdDir(istream &is,I depth,BL mkdir)
+{
+	BL r;
+	for(I i = 1; !is.eof(); ++i) {
+		AtomList d,k,*v = new AtomList;
+		r = ReadAtoms(is,d,',');
+		r = r && ReadAtoms(is,k,',') && k.Count() == 1;
+		r = r && ReadAtoms(is,*v,'\n') && v->Count();
+
+		if(r) {
+			if(d.Count() <= depth) {
+				pooldir *nd = mkdir?AddDir(d):GetDir(d);
+				if(nd) {
+					nd->SetVal(k[0],v); v = NULL;
+				}
+	#ifdef _DEBUG
+				else
+					post("pool - directory was not found",i);
+	#endif
+			}
+		}
+		else if(!is.eof())
+			post("pool - format mismatch encountered, skipped line %i",i);
+
+		if(v) delete v;
+	}
+	return true;
 }
 
 BL pooldir::SvDir(ostream &os,I depth,const AtomList &dir)
@@ -391,7 +476,7 @@ static const C *CnvFlnm(C *dst,const C *src,I sz)
 #endif
 }
 
-BL pooldata::LdDir(const AtomList &d,const C *flnm,I depth)
+BL pooldata::LdDir(const AtomList &d,const C *flnm,I depth,BL mkdir)
 {
 	pooldir *pd = root.GetDir(d);
 	if(pd) {
@@ -399,7 +484,7 @@ BL pooldata::LdDir(const AtomList &d,const C *flnm,I depth)
 		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
 		if(t) {
 			ifstream fl(tmp);
-			return fl.good() && pd->LdDir(fl,depth);
+			return fl.good() && pd->LdDir(fl,depth,mkdir);
 		}
 		else return false;
 	}

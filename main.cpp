@@ -70,11 +70,11 @@ protected:
 	// save directories
 	V m_svdir(I argc,const A *argv);   // save values in current dir
 	V m_svrec(I argc,const A *argv);   // save values recursively
-
+/*
 	// set send/receive symbols
 	V m_recv(I argc,const A *argv);
 	V m_send(I argc,const A *argv);
-
+*/
 private:
 	static BL KeyChk(const A &a);
 	static BL ValChk(I argc,const A *argv);
@@ -126,8 +126,10 @@ private:
 	FLEXT_CALLBACK_V(m_ldrec)
 	FLEXT_CALLBACK_V(m_svdir)
 	FLEXT_CALLBACK_V(m_svrec)
+/*
 	FLEXT_CALLBACK_V(m_recv)
 	FLEXT_CALLBACK_V(m_send)
+*/
 };
 
 FLEXT_NEW_V("pool",pool);
@@ -564,15 +566,31 @@ V pool::m_lddir(I argc,const A *argv)
 V pool::m_ldrec(I argc,const A *argv)
 {
 	const C *flnm = NULL;
-	if(argc > 0) {
-		if(argc > 1) post("%s - ldrec: superfluous arguments ignored",thisName());
+	I depth = -1;
+	BL mkdir = true;
+	if(argc >= 1) {
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
+
+		if(argc >= 2) {
+			if(CanbeInt(argv[1])) depth = GetAInt(argv[1]);
+			else
+				post("%s - ldrec: invalid depth argument - set to -1",thisName());
+
+			if(argc >= 3) {
+				if(CanbeBool(argv[2])) mkdir = GetABool(argv[2]);
+				else
+					post("%s - ldrec: invalid mkdir argument - set to true",thisName());
+
+				if(argc > 3) post("%s - ldrec: superfluous arguments ignored",thisName());
+			}
+		}
+
 	}
 
 	if(!flnm)
 		post("%s - ldrec: invalid filename",thisName());
 	else {
-		if(!pl->LdDir(curdir,flnm,-1)) 
+		if(!pl->LdDir(curdir,flnm,depth,mkdir)) 
 		post("%s - ldrec: directory couldn't be saved",thisName());
 	}
 
@@ -615,6 +633,7 @@ V pool::m_svrec(I argc,const A *argv)
 	echodir();
 }
 
+/*
 V pool::m_recv(I argc,const A *argv)
 {
 	post("%s - recv: sorry, not implemented",thisName());
@@ -624,6 +643,7 @@ V pool::m_send(I argc,const A *argv)
 {
 	post("%s - send: sorry, not implemented",thisName());
 }
+*/
 
 
 BL pool::KeyChk(const t_atom &a)
