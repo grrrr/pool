@@ -13,8 +13,8 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include <flext.h>
 
-#if !defined(FLEXT_VERSION) || (FLEXT_VERSION < 303)
-#error You need at least flext version 0.3.3
+#if !defined(FLEXT_VERSION) || (FLEXT_VERSION < 304)
+#error You need at least flext version 0.3.4
 #endif
 
 
@@ -50,7 +50,7 @@ public:
 	pooldir(const A &dir);
 	~pooldir();
 
-	V Clear(BL rec);
+	V Clear(BL rec,BL dironly = false);
 
 	pooldir *GetDir(I argc,const A *argv,BL rmv = NULL);
 	pooldir *GetDir(const AtomList &d,BL rmv = NULL) { return GetDir(d.Count(),d.Atoms(),rmv); }
@@ -61,6 +61,7 @@ public:
 	V ClrVal(const A &key) { SetVal(key,NULL); }
 	AtomList *GetVal(const A &key);
 	I GetAll(A *&keys,AtomList *&lst);
+	I GetSub(const t_atom **&dirs);
 
 	A dir;
 	pooldir *nxt;
@@ -82,13 +83,14 @@ public:
 	bool MkDir(const AtomList &d); 
 	bool ChkDir(const AtomList &d);
 	bool RmDir(const AtomList &d);
-	bool SvDir(const AtomList &d,const C *flnm);
+	bool SvDir(const AtomList &d,const C *flnm,I depth,BL absdir);
 
 	bool Set(const AtomList &d,const A &key,AtomList *data);
 	bool Clr(const AtomList &d,const A &key);
-	bool ClrAll(const AtomList &d,BL rec);
+	bool ClrAll(const AtomList &d,BL rec,BL dironly = false);
 	AtomList *Get(const AtomList &d,const A &key);
 	I GetAll(const AtomList &d,A *&keys,AtomList *&lst);
+	I GetSub(const AtomList &d,const t_atom **&dirs);
 
 	bool Load(const C *flnm);
 	bool Save(const C *flnm);

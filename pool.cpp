@@ -9,6 +9,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 */
 
 #include "pool.h"
+#include <string.h>
 
 inline t_atom &SetAtom(t_atom &dst,const t_atom &src) { flext_base::CopyAtom(&dst,&src); return dst; }
 
@@ -20,15 +21,13 @@ static I compare(const S *a,const S *b)
 	if(a == b)
 		return 0;
 	else
-		return a < b?-1:1;
+		return strcmp(flext_base::GetString(a),flext_base::GetString(b));
 }
 
 static I compare(const A &a,const A &b) 
 {
 	if(a.a_type == b.a_type) {
 		switch(a.a_type) {
-		case A_NULL:
-			return 0;
 		case A_FLOAT:
 			return compare(a.a_w.w_float,b.a_w.w_float);
 #ifdef MAXMSP
@@ -86,10 +85,10 @@ pooldir::~pooldir()
 	if(nxt) delete nxt;
 }
 
-V pooldir::Clear(BL rec)
+V pooldir::Clear(BL rec,BL dironly)
 {
 	if(rec && dirs) { delete dirs; dirs = NULL; }
-	if(vals) { delete vals; vals = NULL; }
+	if(!dironly && vals) { delete vals; vals = NULL; }
 }
 
 V pooldir::AddDir(I argc,const A *argv)
@@ -100,7 +99,7 @@ V pooldir::AddDir(I argc,const A *argv)
 	pooldir *prv = NULL,*ix = dirs;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(argv[0],ix->dir);
-		if(c >= 0) break;
+		if(c <= 0) break;
 	}
 
 	if(c || !ix) {
@@ -123,7 +122,7 @@ pooldir *pooldir::GetDir(I argc,const A *argv,BL rmv)
 	pooldir *prv = NULL,*ix = dirs;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(argv[0],ix->dir);
-		if(c >= 0) break;
+		if(c <= 0) break;
 	}
 
 	if(c || !ix) 
@@ -139,14 +138,14 @@ pooldir *pooldir::GetDir(I argc,const A *argv,BL rmv)
 			return ix;
 		}
 		else 
-			return NULL;
+			return ix;
 	}
 }
 
 BL pooldir::DelDir(const AtomList &d)
 {
 	pooldir *pd = GetDir(d,true);
-	if(pd) {
+	if(pd && pd != this) {
 		delete pd;
 		return true;
 	}
@@ -160,7 +159,7 @@ V pooldir::SetVal(const A &key,AtomList *data)
 	poolval *prv = NULL,*ix = vals;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(key,ix->key);
-		if(c >= 0) break;
+		if(c <= 0) break;
 	}
 
 	if(c || !ix) {
@@ -190,7 +189,7 @@ AtomList *pooldir::GetVal(const A &key)
 	poolval *ix = vals;
 	for(; ix; ix = ix->nxt) {
 		c = compare(key,ix->key);
-		if(c >= 0) break;
+		if(c <= 0) break;
 	}
 
 	if(c || !ix) 
@@ -201,8 +200,6 @@ AtomList *pooldir::GetVal(const A &key)
 
 I pooldir::GetAll(A *&keys,AtomList *&lst)
 {
-	if(!vals) { keys = NULL; lst = NULL; return 0; }
-
 	I cnt = 0;
 	poolval *ix = vals;
 	for(; ix; ix = ix->nxt,++cnt);
@@ -214,6 +211,22 @@ I pooldir::GetAll(A *&keys,AtomList *&lst)
 	for(I i = 0; ix; ix = ix->nxt,++i) {
 		SetAtom(keys[i],ix->key);
 		lst[i] = *ix->data;
+	}
+
+	return cnt;
+}
+
+I pooldir::GetSub(const t_atom **&lst)
+{
+	I cnt = 0;
+	pooldir *ix = dirs;
+	for(; ix; ix = ix->nxt,++cnt);
+
+	lst = new const t_atom *[cnt];
+
+	ix = dirs;
+	for(I i = 0; ix; ix = ix->nxt,++i) {
+		lst[i] = &ix->dir;
 	}
 
 	return cnt;
@@ -258,7 +271,7 @@ bool pooldata::RmDir(const AtomList &d)
 	return root.DelDir(d);
 }
 
-bool pooldata::SvDir(const AtomList &d,const C *flnm)
+bool pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
 {
 	return false;
 }
@@ -279,11 +292,11 @@ bool pooldata::Clr(const AtomList &d,const A &key)
 	return true;
 }
 
-bool pooldata::ClrAll(const AtomList &d,BL rec)
+bool pooldata::ClrAll(const AtomList &d,BL rec,BL dironly)
 {
 	pooldir *pd = root.GetDir(d);
 	if(!pd) return false;
-	pd->Clear(rec);
+	pd->Clear(rec,dironly);
 	return true;
 }
 
@@ -296,7 +309,23 @@ AtomList *pooldata::Get(const AtomList &d,const A &key)
 I pooldata::GetAll(const AtomList &d,A *&keys,AtomList *&lst)
 {
 	pooldir *pd = root.GetDir(d);
-	return pd?pd->GetAll(keys,lst):0;
+	if(pd)
+		return pd->GetAll(keys,lst);
+	else {
+		keys = NULL; lst = NULL;
+		return 0;
+	}
+}
+
+I pooldata::GetSub(const AtomList &d,const t_atom **&dirs)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd)
+		return pd->GetSub(dirs);
+	else {
+		dirs = NULL;
+		return 0;
+	}
 }
 
 bool pooldata::Load(const C *flnm)
