@@ -16,9 +16,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #define VCNT 64  /* default approximate count of values per folder */
 #define DCNT 16  /* default approximate count of folders per folder */
 
-
 static const t_symbol *sym_echo = flext::MakeSymbol("echo");
-
 
 class pool:
 	public flext_base
@@ -855,23 +853,21 @@ V pool::m_printall()
 
 V pool::m_printrec(I argc,const A *argv,BL fromroot)
 {
-	const S *tag = MakeSymbol(fromroot?"printroot":"printrec");
-
 	I lvls = -1;
 	if(argc > 0) {
 		if(CanbeInt(argv[0])) {
 			if(argc > 1)
-				post("%s - %s: superfluous arguments ignored",thisName(),GetString(tag));
+				post("%s - %s: superfluous arguments ignored",thisName(),GetString(thisTag()));
 			lvls = GetAInt(argv[0]);
 		}
 		else 
-			post("%s - %s: invalid level specification - set to infinite",thisName(),GetString(tag));
+			post("%s - %s: invalid level specification - set to infinite",thisName(),GetString(thisTag()));
 	}
 
 	dirref svdir(curdir);
     if(fromroot) curdir.Reset();
 
-	I cnt = getrec(tag,lvls,false,get_print);
+	I cnt = getrec(thisTag(),lvls,false,get_print);
     post("");
 
     curdir = svdir;

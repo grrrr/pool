@@ -32,6 +32,9 @@ Put the help-pool.pd file into the doc\5.reference subfolder of your PD installa
 
 IMPORTANT INFORMATION for all Max/MSP users:
 
+There is a pool.pat file in the Jitter distribution which can probably be loaded before the pool external.
+Rename it to something else, it will cause no harm.
+
 For Mac OSX put the max-osx/pool.mxd file into the folder 
 /Library/Application Support/Cycling '74/externals
 
