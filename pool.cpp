@@ -155,7 +155,7 @@ BL pooldir::DelDir(const AtomList &d)
 		return false;
 }
 
-V pooldir::SetVal(const A &key,AtomList *data)
+V pooldir::SetVal(const A &key,AtomList *data,BL over)
 {
 	I c = 1;
 	poolval *prv = NULL,*ix = vals;
@@ -165,6 +165,8 @@ V pooldir::SetVal(const A &key,AtomList *data)
 	}
 
 	if(c || !ix) {
+		// no existing data found
+	
 		if(data) {
 			poolval *nv = new poolval(key,data);
 			nv->nxt = ix;
@@ -173,7 +175,9 @@ V pooldir::SetVal(const A &key,AtomList *data)
 			else vals = nv;
 		}
 	}
-	else
+	else if(over) { 
+		// data exists... only set if overwriting enabled
+		
 		if(data)
 			ix->Set(data);
 		else {
@@ -183,6 +187,7 @@ V pooldir::SetVal(const A &key,AtomList *data)
 			ix->nxt = NULL;
 			delete ix;
 		}
+	}
 }
 
 AtomList *pooldir::GetVal(const A &key)
@@ -200,16 +205,21 @@ AtomList *pooldir::GetVal(const A &key)
 		return new AtomList(*ix->data);
 }
 
-I pooldir::GetAll(A *&keys,AtomList *&lst)
+I pooldir::CntAll()
 {
 	I cnt = 0;
 	poolval *ix = vals;
-	for(; ix; ix = ix->nxt,++cnt);
+	for(; ix; ix = ix->nxt,++cnt) (V)0;
+	return cnt;
+}
 
+I pooldir::GetAll(A *&keys,AtomList *&lst)
+{
+	I cnt = CntAll();
 	keys = new A[cnt];
 	lst = new AtomList[cnt];
 
-	ix = vals;
+	poolval *ix = vals;
 	for(I i = 0; ix; ix = ix->nxt,++i) {
 		SetAtom(keys[i],ix->key);
 		lst[i] = *ix->data;
@@ -222,8 +232,7 @@ I pooldir::GetSub(const A **&lst)
 {
 	I cnt = 0;
 	pooldir *ix = dirs;
-	for(; ix; ix = ix->nxt,++cnt);
-
+	for(; ix; ix = ix->nxt,++cnt) (V)0;
 	lst = new const A *[cnt];
 
 	ix = dirs;
@@ -410,11 +419,11 @@ BL pooldata::RmDir(const AtomList &d)
 	return root.DelDir(d);
 }
 
-BL pooldata::Set(const AtomList &d,const A &key,AtomList *data)
+BL pooldata::Set(const AtomList &d,const A &key,AtomList *data,BL over)
 {
 	pooldir *pd = root.GetDir(d);
 	if(!pd) return false;
-	pd->SetVal(key,data);
+	pd->SetVal(key,data,over);
 	return true;
 }
 
@@ -438,6 +447,12 @@ AtomList *pooldata::Get(const AtomList &d,const A &key)
 {
 	pooldir *pd = root.GetDir(d);
 	return pd?pd->GetVal(key):NULL;
+}
+
+I pooldata::CntAll(const AtomList &d)
+{
+	pooldir *pd = root.GetDir(d);
+	return pd?pd->CntAll():0;
 }
 
 I pooldata::GetAll(const AtomList &d,A *&keys,AtomList *&lst)

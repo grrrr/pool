@@ -58,9 +58,10 @@ public:
 	BL DelDir(const AtomList &d);
 	pooldir *AddDir(I argc,const A *argv);
 	pooldir *AddDir(const AtomList &d) { return AddDir(d.Count(),d.Atoms()); }
-	V SetVal(const A &key,AtomList *data);
+	V SetVal(const A &key,AtomList *data,BL over = true);
 	V ClrVal(const A &key) { SetVal(key,NULL); }
 	AtomList *GetVal(const A &key);
+	I CntAll();
 	I GetAll(A *&keys,AtomList *&lst);
 	I GetSub(const t_atom **&dirs);
 	BL LdDir(istream &is,I depth,BL mkdir);
@@ -87,10 +88,11 @@ public:
 	BL ChkDir(const AtomList &d);
 	BL RmDir(const AtomList &d);
 
-	BL Set(const AtomList &d,const A &key,AtomList *data);
+	BL Set(const AtomList &d,const A &key,AtomList *data,BL over = true);
 	BL Clr(const AtomList &d,const A &key);
 	BL ClrAll(const AtomList &d,BL rec,BL dironly = false);
 	AtomList *Get(const AtomList &d,const A &key);
+	I CntAll(const AtomList &d);
 	I GetAll(const AtomList &d,A *&keys,AtomList *&lst);
 	I GetSub(const AtomList &d,const t_atom **&dirs);
 
