@@ -147,9 +147,9 @@ pooldir *pooldir::GetDir(I argc,const A *argv,BL rmv)
 	}
 }
 
-BL pooldir::DelDir(const AtomList &d)
+BL pooldir::DelDir(I argc,const A *argv)
 {
-	pooldir *pd = GetDir(d,true);
+	pooldir *pd = GetDir(argc,argv,true);
 	if(pd && pd != this) {
 		delete pd;
 		return true;

@@ -56,7 +56,8 @@ public:
 
 	pooldir *GetDir(I argc,const A *argv,BL cut = false);
 	pooldir *GetDir(const AtomList &d,BL cut = false) { return GetDir(d.Count(),d.Atoms(),cut); }
-	BL DelDir(const AtomList &d);
+	BL DelDir(I argc,const A *argv);
+	BL DelDir(const AtomList &d) { return DelDir(d.Count(),d.Atoms()); }
 	pooldir *AddDir(I argc,const A *argv);
 	pooldir *AddDir(const AtomList &d) { return AddDir(d.Count(),d.Atoms()); }
 
