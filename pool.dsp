@@ -89,6 +89,10 @@ LINK32=link.exe
 # Name "pool - Win32 Debug"
 # Begin Source File
 
+SOURCE=.\data.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\main.cpp
 # End Source File
 # Begin Source File
