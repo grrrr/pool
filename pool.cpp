@@ -246,6 +246,18 @@ I pooldir::CntAll()
 	return cnt;
 }
 
+I pooldir::GetKeys(AtomList &keys)
+{
+	I cnt = CntAll();
+	keys(cnt);
+
+	poolval *ix = vals;
+	for(I i = 0; ix; ++i,ix = ix->nxt) 
+		SetAtom(keys[i],ix->key);
+
+	return cnt;
+}
+
 I pooldir::GetAll(A *&keys,AtomList *&lst,BL cut)
 {
 	I cnt = CntAll();

@@ -66,6 +66,7 @@ public:
 	AtomList *GetVal(const A &key,BL cut = false);
 	I CntAll();
 	I GetAll(A *&keys,AtomList *&lst,BL cut = false);
+	I GetKeys(AtomList &keys);
 	I GetSub(const t_atom **&dirs);
 
 	poolval *RefVal(const A &key);
