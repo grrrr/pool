@@ -56,6 +56,7 @@ Version history:
 - attributes (pool,private,echodir,absdir)
 - added "geti" message for retrieval of a value at an index
 - fixed bug in "get" message if key not present
+- adapted source to flext 0.4.1 - register methods at class creation
 
 0.1.0:
 - first public release
