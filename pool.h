@@ -1,6 +1,6 @@
 /* 
 
-pool - hierarchic storage object for PD and Max/MSP
+pool - hierarchical storage object for PD and Max/MSP
 
 Copyright (c) 2002 Thomas Grill (xovo@gmx.net)
 For information on usage and redistribution, and for a DISCLAIMER OF ALL
