@@ -29,9 +29,8 @@ typedef bool BL;
 typedef t_atom A;
 typedef t_symbol S;
 
-namespace flext {
-
-class poolval
+class poolval:
+	public flext
 {
 public:
 	poolval(const A &key,AtomList *data);
@@ -45,7 +44,8 @@ public:
 	poolval *nxt;
 };
 
-class pooldir
+	class pooldir:
+	public flext
 {
 public:
 	pooldir(const A &dir);
@@ -79,7 +79,8 @@ public:
 	poolval *vals;
 };
 
-class pooldata
+	class pooldata:
+	public flext
 {
 public:
 	pooldata(const S *s = NULL);
@@ -119,7 +120,5 @@ public:
 private:
 	static t_atom nullatom;
 };
-
-} // namespace flext
 
 #endif

@@ -15,7 +15,6 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #include <ctype.h>
 #include <stdlib.h>
 
-namespace flext {
 
 inline I compare(I a,I b) { return a == b?0:(a < b?-1:1); }
 inline I compare(F a,F b) { return a == b?0:(a < b?-1:1); }
@@ -25,7 +24,7 @@ static I compare(const S *a,const S *b)
 	if(a == b)
 		return 0;
 	else
-		return strcmp(GetString(a),GetString(b));
+		return strcmp(flext::GetString(a),flext::GetString(b));
 }
 
 static I compare(const A &a,const A &b) 
@@ -194,7 +193,7 @@ V pooldir::SetVal(const A &key,AtomList *data,BL over)
 	}
 }
 
-AtomList *pooldir::GetVal(const A &key,BL cut)
+flext::AtomList *pooldir::GetVal(const A &key,BL cut)
 {
 	I c = 1;
 	poolval *prv = NULL,*ix = vals;
@@ -350,7 +349,7 @@ static C *ReadAtom(C *c,A *a)
 		default: { // anything else is a symbol
 			C t = *c; *c = 0;
 			a->a_type = A_SYMBOL;
-			a->a_w.w_symbol = (S *)MakeSymbol(m);
+			a->a_w.w_symbol = (S *)flext::MakeSymbol(m);
 			*c = t;
 			break;
 		}
@@ -360,7 +359,7 @@ static C *ReadAtom(C *c,A *a)
 	return c;
 }
 
-static BL ReadAtoms(istream &is,AtomList &l,C del)
+static BL ReadAtoms(istream &is,flext::AtomList &l,C del)
 {
 	C tmp[1024];
 	is.getline(tmp,sizeof tmp,del); 
@@ -393,12 +392,12 @@ static V WriteAtom(ostream &os,const A &a)
 		break;
 #endif
 	case A_SYMBOL:
-		os << GetString(a.a_w.w_symbol);
+		os << flext::GetString(a.a_w.w_symbol);
 		break;
 	}
 }
 
-static V WriteAtoms(ostream &os,const AtomList &l)
+static V WriteAtoms(ostream &os,const flext::AtomList &l)
 {
 	for(I i = 0; i < l.Count(); ++i) {
 		WriteAtom(os,l[i]);
@@ -519,7 +518,7 @@ BL pooldata::ClrAll(const AtomList &d,BL rec,BL dironly)
 	return true;
 }
 
-AtomList *pooldata::Get(const AtomList &d,const A &key)
+flext::AtomList *pooldata::Get(const AtomList &d,const A &key)
 {
 	pooldir *pd = root.GetDir(d);
 	return pd?pd->GetVal(key):NULL;
@@ -643,5 +642,4 @@ BL pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
 		return false;
 }
 
-} // namespace flext
 

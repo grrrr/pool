@@ -10,8 +10,6 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include "pool.h"
 
-namespace flext {
-
 class pool:
 	public flext_base
 {
@@ -906,4 +904,3 @@ V pool::RmvPool(pooldata *p)
 	}
 }
 
-} // namespace flext
