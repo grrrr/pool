@@ -537,9 +537,10 @@ BL pooldir::LdDir(istream &is,I depth,BL mkdir)
 {
 	for(I i = 1; !is.eof(); ++i) {
 		AtomList d,k,*v = new AtomList;
-		BL r = ReadAtoms(is,d,',');
-		r = r && ReadAtoms(is,k,',') && k.Count() == 1;
-		r = r && ReadAtoms(is,*v,'\n') && v->Count();
+		BL r = 
+            ReadAtoms(is,d,',') && 
+            ReadAtoms(is,k,',') && k.Count() == 1 && 
+            ReadAtoms(is,*v,'\n');
 
 		if(r) {
 			if(depth < 0 || d.Count() <= depth) {
@@ -716,14 +717,13 @@ BL pooldir::LdDirXML(istream &is,I depth,BL mkdir)
                 else if(tag.type == xmltag::t_end) {
         			if(depth < 0 || d.Count() <= depth) {
                         // NOW set value
-                        const char *ds = d.Count()?GetString(d[d.Count()-1]):NULL;
-                        if(!ds || !*ds)
+                        if(d.Count() && GetString(d[d.Count()-1]) == "")
                             post("pool - XML load: dir key must be given prior to dir values");
                         else {
-				            pooldir *nd = mkdir?AddDir(d):GetDir(d);
-				            if(nd) {
-                                // only use first word of key
-                                if(k.Count() == 1)
+                            // only use first word of key
+                            if(k.Count() == 1) {
+		        		        pooldir *nd = mkdir?AddDir(d):GetDir(d);
+        				        if(nd) 
                                     nd->SetVal(k[0],new AtomList(v));
                                 else
                                     post("pool - XML load: value key must be exactly one word, value not stored");
