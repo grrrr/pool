@@ -140,7 +140,7 @@ V pool::setup(t_class *)
 }
 
 pool::pool(I argc,const A *argv):
-	absdir(true),echo(false)
+	absdir(true),echo(false),pl(NULL)
 {
 	SetPool(argc >= 1 && IsSymbol(argv[0])?GetSymbol(argv[0]):NULL);
 

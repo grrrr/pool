@@ -17,7 +17,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #error You need at least flext version 0.3.4
 #endif
 
-#define POOL_VERSION "0.0.1"
+#define POOL_VERSION "0.0.1a"
 
 #define V void
 #define I int
