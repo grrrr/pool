@@ -1,4 +1,4 @@
-#N canvas 25 23 970 673 12;
+#N canvas 25 23 974 677 12;
 #X obj 260 478 pool;
 #X msg 295 108 set 1 2 3;
 #X obj 272 600 print K;
@@ -13,21 +13,21 @@
 #X msg 432 181 get A;
 #X msg 432 213 get 2;
 #X msg 40 132 echodir \$1;
-#X obj 40 111 tgl 15 0 empty empty empty 0 -6 0 8 -262144 -1 -1 0 1
-;
-#X obj 40 213 tgl 15 0 empty empty empty 0 -6 0 8 -262144 -1 -1 0 1
-;
+#X obj 40 111 tgl 15 0 empty empty empty 0 -6 32 8 -262144 -1 -1 0
+1;
+#X obj 40 213 tgl 15 0 empty empty empty 0 -6 32 8 -262144 -1 -1 0
+1;
 #X msg 40 234 absdir \$1;
 #X text 427 85 clear value;
 #X text 428 159 get value;
 #X obj 309 542 print C;
-#X text 375 541 command;
-#X text 357 568 directory (abs or rel to current);
-#X text 320 631 data value;
-#X text 338 599 data key;
+#X text 381 542 command;
+#X text 363 569 directory (abs or rel to current);
+#X text 326 632 data value;
+#X text 344 600 data key;
 #X msg 41 314 pool pool1;
 #X msg 42 343 pool;
-#X text 84 343 set to private;
+#X text 86 343 set to private;
 #X msg 42 405 reset;
 #X text 41 384 clear all pool data;
 #X msg 613 111 clrall;
@@ -38,9 +38,9 @@
 #X msg 611 158 clrrec;
 #X msg 605 258 getrec;
 #X text 605 236 get all values in dir and subdirs;
-#X text 657 287 bang at EOL;
-#X text 666 205 bang at EOL;
-#X text 660 257 depth may be given;
+#X text 670 289 bang at EOL;
+#X text 673 208 bang at EOL;
+#X text 670 257 depth may be given;
 #X text 43 291 set pool name;
 #X text 40 89 at each command;
 #X text 40 73 echo current dir;
@@ -48,16 +48,16 @@
 #X text 35 194 (default on);
 #X text 27 178 report absolute dirs;
 #X msg 43 452 help;
-#X text 85 453 get some info;
-#X text 663 274 default=-1 (= infinite);
+#X text 86 453 get some info;
+#X text 670 274 default=-1 (= infinite);
 #X msg 609 338 cntall;
-#X text 668 336 count all values in dir;
+#X text 675 336 count all values in dir;
 #X msg 609 364 cntrec;
-#X text 670 362 ... and subdirs;
-#X text 666 376 (depth may be given);
+#X text 677 362 ... and subdirs;
+#X text 673 376 (depth may be given);
 #X msg 296 282 add 3 14;
 #X text 294 261 set but don't replace;
-#N canvas 0 0 425 532 dirs 0;
+#N canvas 0 0 510 536 dirs 0;
 #X msg 109 27 mkdir fld1;
 #X msg 111 122 chdir;
 #X msg 110 217 updir;
@@ -74,16 +74,16 @@
 #X msg 110 308 rmsub fld2;
 #X text 109 289 remove relative dir;
 #X text 109 336 get subdirs;
-#X text 239 379 -1 ... infinite;
-#X text 161 213 depth may be given;
-#X text 162 229 default=1;
-#X text 192 348 depth may be given;
-#X text 192 365 default=1;
+#X text 251 380 -1 ... infinite;
+#X text 167 213 depth may be given;
+#X text 168 229 default=1;
+#X text 209 349 depth may be given;
+#X text 207 365 default=1;
 #X text 108 377 count subdirs;
 #X msg 111 398 cntsub -1;
 #X msg 111 458 getdir;
 #X text 110 438 get current dir;
-#X text 172 457 always absolute;
+#X text 176 458 always absolute;
 #X obj 11 239 s \$0-pool;
 #X connect 0 0 26 0;
 #X connect 1 0 26 0;
@@ -123,7 +123,7 @@
 #X restore 719 566 pd file;
 #X text 717 543 file operations;
 #X text 717 600 clipboard operations;
-#N canvas 0 0 531 579 clip 0;
+#N canvas 0 0 535 583 clip 0;
 #X text 97 56 copy value associated to key into clipboard;
 #X msg 100 77 copy A;
 #X msg 98 119 cut B;
@@ -143,15 +143,15 @@
 #X text 96 379 paste clipboard contents into current directory;
 #X text 167 397 depth (default -1) and;
 #X text 169 413 mkdir flag (default 1) can be given;
-#X text 171 448 depth (default -1) and;
-#X text 173 466 mkdir flag (default 1) can be given;
+#X text 183 448 depth (default -1) and;
+#X text 185 466 mkdir flag (default 1) can be given;
 #X msg 95 453 pasteadd;
 #X text 95 431 paste but don't replace;
 #X msg 94 521 clrclip;
-#X text 160 523 clear clipboard (free memory);
+#X text 171 520 clear clipboard (free memory);
 #X text 22 12 clipboard operations (this is an internal clipboard...)
 ;
-#X obj 17 183 s \$0-pool;
+#X obj 4 193 s \$0-pool;
 #X connect 1 0 26 0;
 #X connect 2 0 26 0;
 #X connect 4 0 26 0;
@@ -166,8 +166,8 @@
 #X obj 349 429 r \$0-pool;
 #X text 174 500 data is shared among pool objects with the same name
 ;
-#X obj 26 10 cnv 15 800 40 empty empty pool 10 22 0 24 -260818 -1 0
-;
+#X obj 26 10 cnv 15 850 40 empty empty pool 10 22 32 24 -260818 -1
+0;
 #X text 337 32 http://www.parasitaere-kapazitaeten.net;
 #X text 337 12 a hierarchical storage object \, (C)2002 Thomas Grill
 ;
