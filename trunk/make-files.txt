@@ -1,0 +1,7 @@
+# all the source files from the package
+NAME=pool
+
+SRCDIR=source
+
+SRCS= main.cpp data.cpp pool.cpp file.cpp
+HDRS= pool.h
