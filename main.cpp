@@ -65,6 +65,17 @@ protected:
 	V m_cntrec(I argc,const A *argv);	// also subdirectories
 	V m_cntsub(I argc,const A *argv);	// only subdirectories
 
+	// cut/copy/paste
+	V m_paste(I argc,const A *argv) { paste(MakeSymbol("paste"),argc,argv,true); } // paste contents of clipboard
+	V m_pasteadd(I argc,const A *argv) { paste(MakeSymbol("pasteadd"),argc,argv,false); } // paste but don't replace
+	V m_clrclip();  // clear clipboard
+	V m_cut(I argc,const A *argv) { copy(MakeSymbol("cut"),argc,argv,true); } // cut value into clipboard
+	V m_copy(I argc,const A *argv) { copy(MakeSymbol("copy"),argc,argv,false); } 	// copy value into clipboard
+	V m_cutall() { copyall(MakeSymbol("cutall"),true,0); }   // cut all values in current directory into clipboard
+	V m_copyall() { copyall(MakeSymbol("copyall"),false,0); }   // copy all values in current directory into clipboard
+	V m_cutrec(I argc,const A *argv) { copyrec(MakeSymbol("cutrec"),argc,argv,true); }   // cut directory (and subdirs) into clipboard
+	V m_copyrec(I argc,const A *argv) { copyrec(MakeSymbol("copyrec"),argc,argv,false); }   // cut directory (and subdirs) into clipboard
+
 	// load/save from/to file
 	V m_load(I argc,const A *argv);
 	V m_save(I argc,const A *argv);
@@ -76,11 +87,7 @@ protected:
 	// save directories
 	V m_svdir(I argc,const A *argv);   // save values in current dir
 	V m_svrec(I argc,const A *argv);   // save values recursively
-/*
-	// set send/receive symbols
-	V m_recv(I argc,const A *argv);
-	V m_send(I argc,const A *argv);
-*/
+
 private:
 	static BL KeyChk(const A &a);
 	static BL ValChk(I argc,const A *argv);
@@ -92,11 +99,17 @@ private:
 	I getrec(const S *tag,I level,BL cntonly = false,const AtomList &rdir = AtomList());
 	I getsub(const S *tag,I level,BL cntonly = false,const AtomList &rdir = AtomList());
 
+	V paste(const S *tag,I argc,const A *argv,BL repl);
+	V copy(const S *tag,I argc,const A *argv,BL cut);
+	V copyall(const S *tag,BL cut,I lvls);
+	V copyrec(const S *tag,I argc,const A *argv,BL cut);
+
 	V echodir() { if(echo) getdir(MakeSymbol("echo")); }
 
 	BL priv,absdir,echo;
 	pooldata *pl;
 	AtomList curdir;
+	pooldir *clip;
 
 	static pooldata *head,*tail;
 
@@ -118,6 +131,7 @@ private:
 	FLEXT_CALLBACK_V(m_mksub)
 	FLEXT_CALLBACK_V(m_chsub)
 	FLEXT_CALLBACK_V(m_rmsub)
+
 	FLEXT_CALLBACK_V(m_set)
 	FLEXT_CALLBACK_V(m_add)
 	FLEXT_CALLBACK_V(m_clr)
@@ -131,16 +145,23 @@ private:
 	FLEXT_CALLBACK(m_cntall)
 	FLEXT_CALLBACK_V(m_cntrec)
 	FLEXT_CALLBACK_V(m_cntsub)
+
+	FLEXT_CALLBACK_V(m_paste)
+	FLEXT_CALLBACK_V(m_pasteadd)
+	FLEXT_CALLBACK(m_clrclip)
+	FLEXT_CALLBACK_V(m_copy)
+	FLEXT_CALLBACK_V(m_cut)
+	FLEXT_CALLBACK(m_copyall)
+	FLEXT_CALLBACK(m_cutall)
+	FLEXT_CALLBACK_V(m_copyrec)
+	FLEXT_CALLBACK_V(m_cutrec)
+
 	FLEXT_CALLBACK_V(m_load)
 	FLEXT_CALLBACK_V(m_save)
 	FLEXT_CALLBACK_V(m_lddir)
 	FLEXT_CALLBACK_V(m_ldrec)
 	FLEXT_CALLBACK_V(m_svdir)
 	FLEXT_CALLBACK_V(m_svrec)
-/*
-	FLEXT_CALLBACK_V(m_recv)
-	FLEXT_CALLBACK_V(m_send)
-*/
 };
 
 FLEXT_NEW_V("pool",pool);
@@ -159,7 +180,8 @@ V pool::setup(t_class *)
 }
 
 pool::pool(I argc,const A *argv):
-	absdir(true),echo(false),pl(NULL)
+	absdir(true),echo(false),pl(NULL),
+	clip(NULL)
 {
 	SetPool(argc >= 1 && IsSymbol(argv[0])?GetSymbol(argv[0]):NULL);
 
@@ -183,6 +205,7 @@ pool::pool(I argc,const A *argv):
 	FLEXT_ADDMETHOD_(0,"mksub",m_mksub);
 	FLEXT_ADDMETHOD_(0,"chsub",m_chsub);
 	FLEXT_ADDMETHOD_(0,"rmsub",m_rmsub);
+
 	FLEXT_ADDMETHOD_(0,"set",m_set);
 	FLEXT_ADDMETHOD_(0,"clr",m_clr);
 	FLEXT_ADDMETHOD_(0,"clrall",m_clrall);
@@ -195,14 +218,23 @@ pool::pool(I argc,const A *argv):
 	FLEXT_ADDMETHOD_(0,"cntall",m_cntall);
 	FLEXT_ADDMETHOD_(0,"cntrec",m_cntrec);
 	FLEXT_ADDMETHOD_(0,"cntsub",m_cntsub);
+
+	FLEXT_ADDMETHOD_(0,"paste",m_paste);
+	FLEXT_ADDMETHOD_(0,"pasteadd",m_pasteadd);
+	FLEXT_ADDMETHOD_(0,"clrclip",m_clrclip);
+	FLEXT_ADDMETHOD_(0,"cut",m_cut);
+	FLEXT_ADDMETHOD_(0,"copy",m_copy);
+	FLEXT_ADDMETHOD_(0,"cutall",m_cutall);
+	FLEXT_ADDMETHOD_(0,"copyall",m_copyall);
+	FLEXT_ADDMETHOD_(0,"cutrec",m_cutrec);
+	FLEXT_ADDMETHOD_(0,"copyrec",m_copyrec);
+
 	FLEXT_ADDMETHOD_(0,"load",m_load);
 	FLEXT_ADDMETHOD_(0,"save",m_save);
 	FLEXT_ADDMETHOD_(0,"lddir",m_lddir);
 	FLEXT_ADDMETHOD_(0,"ldrec",m_ldrec);
 	FLEXT_ADDMETHOD_(0,"svdir",m_svdir);
 	FLEXT_ADDMETHOD_(0,"svrec",m_svrec);
-//	FLEXT_ADDMETHOD_(0,"recv",m_recv);
-//	FLEXT_ADDMETHOD_(0,"send",m_send);
 }
 
 pool::~pool()
@@ -235,6 +267,8 @@ V pool::FreePool()
 			delete pl;
 		pl = NULL;
 	}
+
+	if(clip) { delete clip; clip = NULL; }
 }
 
 V pool::m_pool(I argc,const A *argv) 
@@ -606,6 +640,87 @@ V pool::m_cntsub(I argc,const A *argv)
 }
 
 
+V pool::paste(const S *tag,I argc,const A *argv,BL repl)
+{
+	if(clip) {
+		BL mkdir = true;
+		I depth = -1;
+
+		if(argc >= 1) {
+			if(CanbeInt(argv[0])) depth = GetAInt(argv[1]);
+			else
+				post("%s - %s: invalid depth argument - set to -1",thisName(),GetString(tag));
+
+			if(argc >= 2) {
+				if(CanbeBool(argv[1])) mkdir = GetABool(argv[1]);
+				else
+					post("%s - %s: invalid mkdir argument - set to true",thisName(),GetString(tag));
+
+				if(argc > 2) post("%s - %s: superfluous arguments ignored",thisName(),GetString(tag));
+			}
+		}
+		
+		pl->Paste(curdir,clip,depth,repl,mkdir);
+	}
+	else
+		post("%s - %s: clipboard is empty",thisName(),GetString(tag));
+
+	echodir();
+}
+
+
+V pool::m_clrclip()
+{
+	if(clip) { delete clip; clip = NULL; }
+}
+
+
+V pool::copy(const S *tag,I argc,const A *argv,BL cut)
+{
+	if(!argc || !KeyChk(argv[0]))
+		post("%s - %s: invalid key",thisName(),GetString(tag));
+	else {
+		if(argc > 1) 
+			post("%s - %s: superfluous arguments ignored",thisName(),GetString(tag));
+
+		m_clrclip();
+		clip = pl->Copy(curdir,argv[0],cut);
+
+		if(!clip)
+			post("%s - %s: Copying into clipboard failed",thisName(),GetString(tag));
+	}
+
+	echodir();
+}
+
+
+V pool::copyall(const S *tag,BL cut,I depth)
+{
+	m_clrclip();
+	clip = pl->CopyAll(curdir,depth,cut);
+
+	if(!clip)
+		post("%s - %s: Copying into clipboard failed",thisName(),GetString(tag));
+
+	echodir();
+}
+
+
+V pool::copyrec(const S *tag,I argc,const A *argv,BL cut) 
+{
+	I lvls = -1;
+	if(argc > 0) {
+		if(CanbeInt(argv[0])) {
+			if(argc > 1)
+				post("%s - %s: superfluous arguments ignored",thisName(),GetString(tag));
+			lvls = GetAInt(argv[0]);
+		}
+		else 
+			post("%s - %s: invalid level specification - set to infinite",thisName(),GetString(tag));
+	}
+
+	copyall(tag,cut,lvls);
+}
 
 V pool::m_load(I argc,const A *argv)
 {
@@ -678,7 +793,6 @@ V pool::m_ldrec(I argc,const A *argv)
 				if(argc > 3) post("%s - ldrec: superfluous arguments ignored",thisName());
 			}
 		}
-
 	}
 
 	if(!flnm)
@@ -727,17 +841,6 @@ V pool::m_svrec(I argc,const A *argv)
 	echodir();
 }
 
-/*
-V pool::m_recv(I argc,const A *argv)
-{
-	post("%s - recv: sorry, not implemented",thisName());
-}
-
-V pool::m_send(I argc,const A *argv)
-{
-	post("%s - send: sorry, not implemented",thisName());
-}
-*/
 
 
 BL pool::KeyChk(const t_atom &a)
@@ -803,6 +906,4 @@ V pool::RmvPool(pooldata *p)
 	}
 }
 
-}
-
-
+} // namespace flext

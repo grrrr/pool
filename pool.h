@@ -13,11 +13,11 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include <flext.h>
 
-#if !defined(FLEXT_VERSION) || (FLEXT_VERSION < 304)
-#error You need at least flext version 0.3.4
+#if !defined(FLEXT_VERSION) || (FLEXT_VERSION < 400)
+#error You need at least flext version 0.4.0
 #endif
 
-#define POOL_VERSION "0.0.3"
+#define POOL_VERSION "0.0.4"
 
 #include <iostream.h>
 
@@ -38,6 +38,7 @@ public:
 	~poolval();
 
 	poolval &Set(AtomList *data);
+	poolval *Dup() const;
 
 	A key;
 	AtomList *data;
@@ -52,17 +53,22 @@ public:
 
 	V Clear(BL rec,BL dironly = false);
 
-	pooldir *GetDir(I argc,const A *argv,BL rmv = NULL);
-	pooldir *GetDir(const AtomList &d,BL rmv = NULL) { return GetDir(d.Count(),d.Atoms(),rmv); }
+	pooldir *GetDir(I argc,const A *argv,BL cut = false);
+	pooldir *GetDir(const AtomList &d,BL cut = false) { return GetDir(d.Count(),d.Atoms(),cut); }
 	BL DelDir(const AtomList &d);
 	pooldir *AddDir(I argc,const A *argv);
 	pooldir *AddDir(const AtomList &d) { return AddDir(d.Count(),d.Atoms()); }
+
 	V SetVal(const A &key,AtomList *data,BL over = true);
 	V ClrVal(const A &key) { SetVal(key,NULL); }
-	AtomList *GetVal(const A &key);
+	AtomList *GetVal(const A &key,BL cut = false);
 	I CntAll();
-	I GetAll(A *&keys,AtomList *&lst);
+	I GetAll(A *&keys,AtomList *&lst,BL cut = false);
 	I GetSub(const t_atom **&dirs);
+
+	BL Paste(const pooldir *p,I depth,BL repl,BL mkdir);
+	BL Copy(pooldir *p,I depth,BL cur);
+
 	BL LdDir(istream &is,I depth,BL mkdir);
 	BL SvDir(ostream &os,I depth,const AtomList &dir = AtomList());
 
@@ -95,6 +101,10 @@ public:
 	I GetAll(const AtomList &d,A *&keys,AtomList *&lst);
 	I GetSub(const AtomList &d,const t_atom **&dirs);
 
+	BL Paste(const AtomList &d,const pooldir *clip,I depth = -1,BL repl = true,BL mkdir = true);
+	pooldir *Copy(const AtomList &d,const A &key,BL cut);
+	pooldir *CopyAll(const AtomList &d,I depth,BL cut);
+
 	BL LdDir(const AtomList &d,const C *flnm,I depth,BL mkdir = true);
 	BL SvDir(const AtomList &d,const C *flnm,I depth,BL absdir);
 	BL Load(const C *flnm) { return LdDir(AtomList(),flnm,-1); }
@@ -110,6 +120,6 @@ private:
 	static t_atom nullatom;
 };
 
-}
+} // namespace flext
 
 #endif

@@ -17,7 +17,6 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 namespace flext {
 
-
 inline I compare(I a,I b) { return a == b?0:(a < b?-1:1); }
 inline I compare(F a,F b) { return a == b?0:(a < b?-1:1); }
 
@@ -74,6 +73,10 @@ poolval &poolval::Set(AtomList *d)
 	return *this;
 }
 
+poolval *poolval::Dup() const
+{
+	return new poolval(key,data?new AtomList(*data):NULL); 
+}
 
 
 pooldir::pooldir(const A &d):
@@ -191,39 +194,59 @@ V pooldir::SetVal(const A &key,AtomList *data,BL over)
 	}
 }
 
-AtomList *pooldir::GetVal(const A &key)
+AtomList *pooldir::GetVal(const A &key,BL cut)
 {
 	I c = 1;
-	poolval *ix = vals;
-	for(; ix; ix = ix->nxt) {
+	poolval *prv = NULL,*ix = vals;
+	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(key,ix->key);
 		if(c <= 0) break;
 	}
 
 	if(c || !ix) 
 		return NULL;
-	else
-		return new AtomList(*ix->data);
+	else {
+		AtomList *ret;
+		if(cut) {
+			poolval *nv = ix->nxt;
+			if(prv) prv->nxt = nv;
+			else vals = nv;
+			ix->nxt = NULL;
+			ret = ix->data; ix->data = NULL;
+			delete ix;
+		}
+		else
+			ret = new AtomList(*ix->data);
+		return ret;
+	}
 }
 
 I pooldir::CntAll()
 {
 	I cnt = 0;
 	poolval *ix = vals;
-	for(; ix; ix = ix->nxt,++cnt) (V)0;
+	for(; ix; ix = ix->nxt,++cnt) {}
 	return cnt;
 }
 
-I pooldir::GetAll(A *&keys,AtomList *&lst)
+I pooldir::GetAll(A *&keys,AtomList *&lst,BL cut)
 {
 	I cnt = CntAll();
 	keys = new A[cnt];
 	lst = new AtomList[cnt];
 
 	poolval *ix = vals;
-	for(I i = 0; ix; ix = ix->nxt,++i) {
+	for(I i = 0; ix; ++i) {
 		SetAtom(keys[i],ix->key);
 		lst[i] = *ix->data;
+
+		if(cut) {
+			poolval *t = ix;
+			vals = ix = ix->nxt;
+			t->nxt = NULL; delete t;
+		}
+		else
+			ix = ix->nxt;
 	}
 
 	return cnt;
@@ -233,7 +256,7 @@ I pooldir::GetSub(const A **&lst)
 {
 	I cnt = 0;
 	pooldir *ix = dirs;
-	for(; ix; ix = ix->nxt,++cnt) (V)0;
+	for(; ix; ix = ix->nxt,++cnt) {}
 	lst = new const A *[cnt];
 
 	ix = dirs;
@@ -242,6 +265,58 @@ I pooldir::GetSub(const A **&lst)
 	}
 
 	return cnt;
+}
+
+
+BL pooldir::Paste(const pooldir *p,I depth,BL repl,BL mkdir)
+{
+	BL ok = true;
+
+	for(poolval *ix = p->vals; ix; ix = ix->nxt) {
+		SetVal(ix->key,new AtomList(*ix->data),repl);
+	}
+
+	if(ok && depth) {
+		for(pooldir *dix = p->dirs; ok && dix; dix = dix->nxt) {
+			pooldir *ndir = mkdir?AddDir(1,&dix->dir):GetDir(1,&dix->dir);
+			if(ndir) { 
+				ok = ndir->Paste(dix,depth > 0?depth-1:depth,repl,mkdir);
+			}
+		}
+	}
+
+	return ok;
+}
+
+BL pooldir::Copy(pooldir *p,I depth,BL cut)
+{
+	BL ok = true;
+
+	if(cut) {
+		if(p->vals) 
+			ok = false;
+		else
+			p->vals = vals, vals = NULL;
+	}
+	else {
+		// inefficient!! p->SetVal has to search through list unnecessarily!!
+		for(poolval *ix = vals; ix; ix = ix->nxt) {
+			p->SetVal(ix->key,new AtomList(*ix->data));
+		}
+	}
+
+	if(ok && depth) {
+		// also quite inefficient for cut 
+		for(pooldir *dix = dirs; ok && dix; dix = dix->nxt) {
+			pooldir *ndir = p->AddDir(1,&dix->dir);
+			if(ndir)
+				ok = ndir->Copy(dix,depth > 0?depth-1:depth,cut);
+			else
+				ok = false;
+		}
+	}
+
+	return ok;
 }
 
 
@@ -478,6 +553,50 @@ I pooldata::GetSub(const AtomList &d,const t_atom **&dirs)
 	}
 }
 
+
+BL pooldata::Paste(const AtomList &d,const pooldir *clip,I depth,BL repl,BL mkdir)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd)
+		return pd->Paste(clip,depth,repl,mkdir);
+	else
+		return false;
+}
+
+pooldir *pooldata::Copy(const AtomList &d,const A &key,BL cut)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd) {
+		AtomList *val = pd->GetVal(key,cut);
+		if(val) {
+			pooldir *ret = new pooldir(nullatom);
+			ret->SetVal(key,val);
+			return ret;
+		}
+		else
+			return NULL;
+	}
+	else
+		return NULL;
+}
+
+pooldir *pooldata::CopyAll(const AtomList &d,I depth,BL cut)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd) {
+		pooldir *ret = new pooldir(nullatom);
+		if(pd->Copy(ret,depth,cut))
+			return ret;
+		else {
+			delete ret;
+			return NULL;
+		}
+	}
+	else
+		return NULL;
+}
+
+
 static const C *CnvFlnm(C *dst,const C *src,I sz)
 {
 #if defined(PD) && defined(NT)
@@ -524,7 +643,5 @@ BL pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
 		return false;
 }
 
-}
-
-
+} // namespace flext
 
