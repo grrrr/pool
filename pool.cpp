@@ -424,7 +424,7 @@ BL pooldir::Copy(pooldir *p,I depth,BL cut)
 			for(pooldir *dix = dirs[di].d; ok && dix; dix = dix->nxt) {
 				pooldir *ndir = p->AddDir(1,&dix->dir);
 				if(ndir)
-					ok = ndir->Copy(dix,depth > 0?depth-1:depth,cut);
+					ok = dix->Copy(ndir,depth > 0?depth-1:depth,cut);
 				else
 					ok = false;
 			}
