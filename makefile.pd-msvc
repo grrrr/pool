@@ -10,14 +10,14 @@
 !include config-pd-msvc.txt
 
 # includes
-INCPATH=/I$(MSVCPATH)\include /I"$(PDPATH)\src" /I"$(FLEXTPATH)"
+INCPATH=/I"$(MSVCPATH)\include" /I"$(PDPATH)\src" /I"$(FLEXTPATH)"
 LIBPATH=/LIBPATH:"$(MSVCPATH)\lib" /LIBPATH:"$(PDPATH)\bin" /LIBPATH:"$(FLEXTPATH)"
 LIBS=pd.lib flext-pdwin.lib
 
 # compiler definitions and flags
 DEFS=/DPD /DNT 
 
-CFLAGS=/GR /GD /G6 /Ox /MT
+CFLAGS=/GR- /GX- /GD /G6 /Ox /ML
 
 # the rest can stay untouched
 # ----------------------------------------------
@@ -43,15 +43,16 @@ OBJS= $(SRCS:.cpp=.obj)
 $(OUTPATH):
 	-mkdir $(OUTPATH) > nul
 
-{}.cpp{$(DIR)}.obj:
-	cl /c /LD $(CFLAGS) $(DEFS) $(INCPATH) $** /Fo$<
+{$(DIR)}.cpp{}.obj:
+	cl /c /LD $(CFLAGS) $(DEFS) $(INCPATH) $** /Fo$(OUTPATH)\$@
 
 $(OUTPATH)\$(NAME).dll: $(OBJS)
-	link /DLL /out:$@ /INCREMENTAL:NO $** $(LIBS) $(LIBPATH)
-	@-del $(OUTPATH)\*.exp
-	@-del $(OUTPATH)\*.lib
-	@-del temp.obj
+	cd $(OUTPATH)
+	link /DLL /out:$(NAME).dll /INCREMENTAL:NO $** $(LIBS) $(LIBPATH)
+	@-del *.exp
+	@-del *.lib
+	cd ..
 !ifdef INSTPATH
-	@-if not exist $(OBJPATH) mkdir $(INSTPATH)
+	@-if not exist $(INSTPATH) mkdir $(INSTPATH)
 	copy $@ $(INSTPATH) > nul
 !endif
