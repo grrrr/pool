@@ -191,6 +191,8 @@ pool::pool(I argc,const A *argv):
 	AddOutList();
 	AddOutAnything();
 
+	FLEXT_ADDMETHOD_(0,"pool",m_pool);
+
 	FLEXT_ADDMETHOD_(0,"set",m_set);
 	FLEXT_ADDMETHOD_(0,"add",m_add);
 	FLEXT_ADDMETHOD_(0,"reset",m_reset);
