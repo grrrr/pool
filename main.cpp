@@ -82,16 +82,22 @@ protected:
 	V m_copyrec(I argc,const A *argv) { copyrec(MakeSymbol("copyrec"),argc,argv,false); }   // cut directory (and subdirs) into clipboard
 
 	// load/save from/to file
-	V m_load(I argc,const A *argv);
-	V m_save(I argc,const A *argv);
+    V m_load(I argc,const A *argv) { load(argc,argv,false); }
+	V m_save(I argc,const A *argv) { save(argc,argv,false); }
+	V m_loadx(I argc,const A *argv) { load(argc,argv,true); } // XML
+	V m_savex(I argc,const A *argv) { save(argc,argv,true); } // XML
 
 	// load directories
-	V m_lddir(I argc,const A *argv);   // load values into current dir
-	V m_ldrec(I argc,const A *argv);   // load values recursively
+	V m_lddir(I argc,const A *argv) { lddir(argc,argv,false); }   // load values into current dir
+	V m_ldrec(I argc,const A *argv) { ldrec(argc,argv,false); }   // load values recursively
+	V m_ldxdir(I argc,const A *argv) { lddir(argc,argv,true); }   // load values into current dir (XML)
+	V m_ldxrec(I argc,const A *argv) { ldrec(argc,argv,true); }   // load values recursively (XML)
 
 	// save directories
-	V m_svdir(I argc,const A *argv);   // save values in current dir
-	V m_svrec(I argc,const A *argv);   // save values recursively
+	V m_svdir(I argc,const A *argv) { svdir(argc,argv,false); }   // save values in current dir
+	V m_svrec(I argc,const A *argv) { svrec(argc,argv,false); }   // save values recursively
+	V m_svxdir(I argc,const A *argv) { svdir(argc,argv,true); }   // save values in current dir (XML)
+	V m_svxrec(I argc,const A *argv) { svrec(argc,argv,true); }   // save values recursively (XML)
 
 private:
 	static BL KeyChk(const A &a);
@@ -108,6 +114,13 @@ private:
 	V copy(const S *tag,I argc,const A *argv,BL cut);
 	V copyall(const S *tag,BL cut,I lvls);
 	V copyrec(const S *tag,I argc,const A *argv,BL cut);
+
+	V load(I argc,const A *argv,BL xml);
+	V save(I argc,const A *argv,BL xml);
+	V lddir(I argc,const A *argv,BL xml);   // load values into current dir
+	V ldrec(I argc,const A *argv,BL xml);   // load values recursively
+	V svdir(I argc,const A *argv,BL xml);   // save values in current dir
+	V svrec(I argc,const A *argv,BL xml);   // save values recursively
 
 	V echodir() { if(echo) getdir(MakeSymbol("echo")); }
 
@@ -179,6 +192,12 @@ private:
 	FLEXT_CALLBACK_V(m_ldrec)
 	FLEXT_CALLBACK_V(m_svdir)
 	FLEXT_CALLBACK_V(m_svrec)
+	FLEXT_CALLBACK_V(m_loadx)
+	FLEXT_CALLBACK_V(m_savex)
+	FLEXT_CALLBACK_V(m_ldxdir)
+	FLEXT_CALLBACK_V(m_ldxrec)
+	FLEXT_CALLBACK_V(m_svxdir)
+	FLEXT_CALLBACK_V(m_svxrec)
 };
 
 FLEXT_NEW_V("pool",pool);
@@ -190,8 +209,7 @@ pooldata *pool::head,*pool::tail;
 V pool::setup(t_classid c)
 {
 	post("");
-	post("pool %s - hierarchical storage object",POOL_VERSION);
-	post("(C)2002-2003 Thomas Grill");
+	post("pool %s - hierarchical storage object,(C)2002-2003 Thomas Grill",POOL_VERSION);
 	post("");
 
 	head = tail = NULL;
@@ -248,6 +266,12 @@ V pool::setup(t_classid c)
 	FLEXT_CADDMETHOD_(c,0,"ldrec",m_ldrec);
 	FLEXT_CADDMETHOD_(c,0,"svdir",m_svdir);
 	FLEXT_CADDMETHOD_(c,0,"svrec",m_svrec);
+	FLEXT_CADDMETHOD_(c,0,"loadx",m_loadx);
+	FLEXT_CADDMETHOD_(c,0,"savex",m_savex);
+	FLEXT_CADDMETHOD_(c,0,"ldxdir",m_ldxdir);
+	FLEXT_CADDMETHOD_(c,0,"ldxrec",m_ldxrec);
+	FLEXT_CADDMETHOD_(c,0,"svxdir",m_svxdir);
+	FLEXT_CADDMETHOD_(c,0,"svxrec",m_svxrec);
 }
 
 pool::pool(I argc,const A *argv):
@@ -839,58 +863,60 @@ V pool::copyrec(const S *tag,I argc,const A *argv,BL cut)
 	copyall(tag,cut,lvls);
 }
 
-V pool::m_load(I argc,const A *argv)
+V pool::load(I argc,const A *argv,BL xml)
 {
+    const C *sym = xml?"loadx":"load";
 	const C *flnm = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - load: superfluous arguments ignored",thisName());
+		if(argc > 1) post("%s - %s: superfluous arguments ignored",thisName(),sym);
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
 	}
 
 	if(!flnm) 
-		post("%s - load: no filename given",thisName());
-	else if(!pl->Load(flnm))
-		post("%s - load: error loading data",thisName());
+		post("%s - %s: no filename given",thisName(),sym);
+    else if(!(xml?pl->LoadXML(flnm):pl->Load(flnm)))
+		post("%s - %s: error loading data",thisName(),sym);
 
 	echodir();
 }
 
-V pool::m_save(I argc,const A *argv)
+V pool::save(I argc,const A *argv,BL xml)
 {
+    const C *sym = xml?"savex":"save";
 	const C *flnm = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - save: superfluous arguments ignored",thisName());
+		if(argc > 1) post("%s - %s: superfluous arguments ignored",thisName(),sym);
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
 	}
 
 	if(!flnm) 
-		post("%s - save: no filename given",thisName());
-	else if(!pl->Save(flnm))
-		post("%s - save: error saving data",thisName());
+		post("%s - %s: no filename given",thisName(),sym);
+    else if(!(xml?pl->SaveXML(flnm):pl->Save(flnm)))
+		post("%s - %s: error saving data",thisName(),sym);
 
 	echodir();
 }
 
-V pool::m_lddir(I argc,const A *argv)
+V pool::lddir(I argc,const A *argv,BL xml)
 {
+    const C *sym = xml?"ldxdir":"lddir";
 	const C *flnm = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - lddir: superfluous arguments ignored",thisName());
+		if(argc > 1) post("%s - %s: superfluous arguments ignored",thisName(),sym);
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
 	}
 
 	if(!flnm)
-		post("%s - lddir: invalid filename",thisName());
-	else {
-		if(!pl->LdDir(curdir,flnm,0)) 
-		post("%s - lddir: directory couldn't be loaded",thisName());
-	}
+		post("%s - %s: invalid filename",thisName(),sym);
+    else if(!(xml?pl->LdDirXML(curdir,flnm,0):pl->LdDir(curdir,flnm,0))) 
+		post("%s - %s: directory couldn't be loaded",thisName(),sym);
 
 	echodir();
 }
 
-V pool::m_ldrec(I argc,const A *argv)
+V pool::ldrec(I argc,const A *argv,BL xml)
 {
+    const C *sym = xml?"ldxrec":"ldrec";
 	const C *flnm = NULL;
 	I depth = -1;
 	BL mkdir = true;
@@ -900,59 +926,61 @@ V pool::m_ldrec(I argc,const A *argv)
 		if(argc >= 2) {
 			if(CanbeInt(argv[1])) depth = GetAInt(argv[1]);
 			else
-				post("%s - ldrec: invalid depth argument - set to -1",thisName());
+				post("%s - %s: invalid depth argument - set to -1",thisName(),sym);
 
 			if(argc >= 3) {
 				if(CanbeBool(argv[2])) mkdir = GetABool(argv[2]);
 				else
-					post("%s - ldrec: invalid mkdir argument - set to true",thisName());
+					post("%s - %s: invalid mkdir argument - set to true",thisName(),sym);
 
-				if(argc > 3) post("%s - ldrec: superfluous arguments ignored",thisName());
+				if(argc > 3) post("%s - %s: superfluous arguments ignored",thisName(),sym);
 			}
 		}
 	}
 
 	if(!flnm)
-		post("%s - ldrec: invalid filename",thisName());
+		post("%s - %s: invalid filename",thisName(),sym);
 	else {
-		if(!pl->LdDir(curdir,flnm,depth,mkdir)) 
-		post("%s - ldrec: directory couldn't be saved",thisName());
+        if(!(xml?pl->LdDirXML(curdir,flnm,depth,mkdir):pl->LdDir(curdir,flnm,depth,mkdir))) 
+		post("%s - %s: directory couldn't be saved",thisName(),sym);
 	}
 
 	echodir();
 }
 
-V pool::m_svdir(I argc,const A *argv)
+V pool::svdir(I argc,const A *argv,BL xml)
 {
+    const C *sym = xml?"svxdir":"svdir";
 	const C *flnm = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - svdir: superfluous arguments ignored",thisName());
+		if(argc > 1) post("%s - %s: superfluous arguments ignored",thisName(),sym);
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
 	}
 
 	if(!flnm)
-		post("%s - svdir: invalid filename",thisName());
+		post("%s - %s: invalid filename",thisName(),sym);
 	else {
-		if(!pl->SvDir(curdir,flnm,0,absdir)) 
-		post("%s - svdir: directory couldn't be saved",thisName());
+        if(!(xml?pl->SvDirXML(curdir,flnm,0,absdir):pl->SvDir(curdir,flnm,0,absdir))) 
+		post("%s - %s: directory couldn't be saved",thisName(),sym);
 	}
 
 	echodir();
 }
 
-V pool::m_svrec(I argc,const A *argv)
+V pool::svrec(I argc,const A *argv,BL xml)
 {
+    const C *sym = xml?"svxrec":"svrec";
 	const C *flnm = NULL;
 	if(argc > 0) {
-		if(argc > 1) post("%s - svrec: superfluous arguments ignored",thisName());
+		if(argc > 1) post("%s - %s: superfluous arguments ignored",thisName(),sym);
 		if(IsString(argv[0])) flnm = GetString(argv[0]);
 	}
 
 	if(!flnm)
-		post("%s - svrec: invalid filename",thisName());
+		post("%s - %s: invalid filename",thisName(),sym);
 	else {
-		if(!pl->SvDir(curdir,flnm,-1,absdir)) 
-		post("%s - svrec: directory couldn't be saved",thisName());
+        if(!(xml?pl->SvDirXML(curdir,flnm,-1,absdir):pl->SvDir(curdir,flnm,-1,absdir))) 
+		post("%s - %s: directory couldn't be saved",thisName(),sym);
 	}
 
 	echodir();

@@ -34,7 +34,7 @@ const A pooldata::nullatom = { A_NULL };
 
 V pooldata::Reset()
 {
-	root.Clear(true);
+	root.Reset();
 }
 
 BL pooldata::MkDir(const AtomList &d,I vcnt,I dcnt)
@@ -221,6 +221,61 @@ BL pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
 			AtomList tmp;
 			if(absdir) tmp = d;
 			return fl.good() && pd->SvDir(fl,depth,tmp);
+		}
+		else return false;
+	}
+	else
+		return false;
+}
+
+BL pooldata::LdDirXML(const AtomList &d,const C *flnm,I depth,BL mkdir)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd) {
+		C tmp[1024];
+		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
+		if(t) {
+			ifstream fl(t);
+            BL ret = fl.good() != 0;
+            if(ret) {
+                fl.getline(tmp,sizeof tmp);
+                ret = !strncmp(tmp,"<?xml",5);
+            }
+            if(ret) {
+                fl.getline(tmp,sizeof tmp);
+                // DOCTYPE need not be present / only external DOCTYPE is allowed!
+                if(!strncmp(tmp,"<!DOCTYPE",9)) 
+                    fl.getline(tmp,sizeof tmp);
+                ret = !strncmp(tmp,"<pool>",6);
+            }
+            if(ret)
+                ret = pd->LdDirXML(fl,depth,mkdir);
+            return ret;
+		}
+		else return false;
+	}
+	else
+		return false;
+}
+
+BL pooldata::SvDirXML(const AtomList &d,const C *flnm,I depth,BL absdir)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd) {
+		C tmp[1024];
+		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
+		if(t) {
+			ofstream fl(t);
+			AtomList tmp;
+			if(absdir) tmp = d;
+            if(fl.good()) {
+                fl << "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>" << endl;
+                fl << "<!DOCTYPE pool SYSTEM \"pool.dtd\">" << endl;
+                fl << "<pool>" << endl;
+                BL ret = pd->SvDirXML(fl,depth,tmp);
+                fl << "</pool>" << endl;
+                return ret;
+            }
 		}
 		else return false;
 	}

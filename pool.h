@@ -53,6 +53,8 @@ public:
 	~pooldir();
 
 	V Clear(BL rec,BL dironly = false);
+	V Reset(BL realloc = true);
+
 	BL Empty() const { return !dirs && !vals; }
 	BL HasDirs() const { return dirs != NULL; }
 	BL HasVals() const { return vals != NULL; }
@@ -81,7 +83,9 @@ public:
 	BL Copy(pooldir *p,I depth,BL cur);
 
 	BL LdDir(istream &is,I depth,BL mkdir);
+	BL LdDirXML(istream &is,I depth,BL mkdir);
 	BL SvDir(ostream &os,I depth,const AtomList &dir = AtomList());
+	BL SvDirXML(ostream &os,I depth,const AtomList &dir = AtomList());
 
 	int VSize() const { return vsize; }
 	int DSize() const { return dsize; }
@@ -138,6 +142,10 @@ public:
 	BL SvDir(const AtomList &d,const C *flnm,I depth,BL absdir);
 	BL Load(const C *flnm) { return LdDir(AtomList(),flnm,-1); }
 	BL Save(const C *flnm) { return SvDir(AtomList(),flnm,-1,true); }
+	BL LdDirXML(const AtomList &d,const C *flnm,I depth,BL mkdir = true);
+	BL SvDirXML(const AtomList &d,const C *flnm,I depth,BL absdir);
+	BL LoadXML(const C *flnm) { return LdDirXML(AtomList(),flnm,-1); }
+	BL SaveXML(const C *flnm) { return SvDirXML(AtomList(),flnm,-1,true); }
 
 	I refs;
 	const S *sym;
