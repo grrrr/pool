@@ -617,7 +617,7 @@ BL pooldata::LdDir(const AtomList &d,const C *flnm,I depth,BL mkdir)
 		C tmp[1024];
 		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
 		if(t) {
-			ifstream fl(tmp);
+			ifstream fl(t);
 			return fl.good() && pd->LdDir(fl,depth,mkdir);
 		}
 		else return false;

@@ -1,4 +1,4 @@
-#N canvas 25 23 964 667 12;
+#N canvas 25 23 966 669 12;
 #X obj 273 441 pool;
 #X msg 236 52 set 1 2 3;
 #X obj 272 563 print K;
@@ -124,9 +124,8 @@
 #X restore 714 549 pd file;
 #X text 712 526 file operations;
 #X text 712 583 clipboard operations;
-#N canvas 0 0 527 575 clip 0;
+#N canvas 0 0 529 577 clip 0;
 #X obj 17 183 outlet;
-#X text 22 12 clipboard operations;
 #X text 97 56 copy value associated to key into clipboard;
 #X msg 100 77 copy A;
 #X msg 98 119 cut B;
@@ -152,15 +151,17 @@
 #X text 95 431 paste but don't replace;
 #X msg 94 521 clrclip;
 #X text 160 523 clear clipboard (free memory);
+#X text 22 12 clipboard operations (this is an internal clipboard...)
+;
+#X connect 2 0 0 0;
 #X connect 3 0 0 0;
-#X connect 4 0 0 0;
+#X connect 5 0 0 0;
 #X connect 6 0 0 0;
-#X connect 7 0 0 0;
-#X connect 9 0 0 0;
-#X connect 13 0 0 0;
-#X connect 16 0 0 0;
-#X connect 23 0 0 0;
-#X connect 25 0 0 0;
+#X connect 8 0 0 0;
+#X connect 12 0 0 0;
+#X connect 15 0 0 0;
+#X connect 22 0 0 0;
+#X connect 24 0 0 0;
 #X restore 714 606 pd clip;
 #X text 712 437 more commands:;
 #X obj 780 494 s \$0-pool;
