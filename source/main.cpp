@@ -13,10 +13,12 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #define POOL_VERSION "0.2.1pre"
 
-#define VCNT 64
-#define DCNT 16
+#define VCNT 64  /* default approximate count of values per folder */
+#define DCNT 16  /* default approximate count of folders per folder */
 
-const t_symbol *sym_echo = flext::MakeSymbol("echo");
+
+static const t_symbol *sym_echo = flext::MakeSymbol("echo");
+
 
 class pool:
 	public flext_base
@@ -40,10 +42,10 @@ protected:
 	V mg_pool(AtomList &l);
 
 	// clear all data in pool
-	V m_reset();
+	V m_reset() { pl->Reset(); }
 
 	// handle directories
-	V m_getdir();
+	V m_getdir() { getdir(thisTag()); }
 
 	V m_mkdir(I argc,const A *argv,BL abs = true,BL chg = false); // make (and change) to dir
 	V m_mkchdir(I argc,const A *argv) { m_mkdir(argc,argv,true,true); } // make and change to dir
@@ -112,7 +114,8 @@ protected:
 	V m_svxrec(I argc,const A *argv) { svrec(argc,argv,true); }   // save values recursively (XML)
 
 private:
-	static BL KeyChk(const A &a);
+
+	static BL KeyChk(const A &a) { return IsSymbol(a) || IsFloat(a) || IsInt(a); }
 	static BL ValChk(I argc,const A *argv);
 	static BL ValChk(const AtomList &l) { return ValChk(l.Count(),l.Atoms()); }
 	V ToOutAtom(I ix,const A &a);
@@ -141,7 +144,8 @@ private:
 	BL priv,absdir,echo;
 	I vcnt,dcnt;
 	pooldata *pl;
-	AtomList curdir;
+	dirref curdir;
+    pooliter iter;
 	pooldir *clip;
 	const S *holdname;
 
@@ -159,7 +163,6 @@ private:
 	FLEXT_ATTRVAR_B(absdir)
 	FLEXT_ATTRVAR_B(echo)
 	FLEXT_ATTRGET_B(priv)
-//	FLEXT_ATTRGET_B(curdir)
 	FLEXT_ATTRVAR_I(vcnt)
 	FLEXT_ATTRVAR_I(dcnt)
 
@@ -357,7 +360,7 @@ V pool::SetPool(const S *s)
 
 V pool::FreePool()
 {
-	curdir(); // reset current directory
+	curdir.Reset(); // reset current directory
 
 	if(pl) {
 		if(!priv) 
@@ -367,7 +370,7 @@ V pool::FreePool()
 		pl = NULL;
 	}
 
-	if(clip) { delete clip; clip = NULL; }
+    if(clip) { pooldir::Free(clip); clip = NULL; }
 }
 
 V pool::ms_pool(const AtomList &l) 
@@ -388,19 +391,12 @@ V pool::mg_pool(AtomList &l)
 	else { l(1); SetSymbol(l[0],pl->sym); }
 }
 
-V pool::m_reset() 
-{
-	pl->Reset();
-}
-
 
 V pool::getdir(const S *tag)
 {
 	ToOutAnything(3,tag,0,NULL);
-	ToOutList(2,curdir);
+	ToOutList(2,curdir.Dir());
 }
-
-V pool::m_getdir() { getdir(thisTag()); }
 
 V pool::m_mkdir(I argc,const A *argv,BL abs,BL chg)
 {
@@ -408,7 +404,7 @@ V pool::m_mkdir(I argc,const A *argv,BL abs,BL chg)
 	if(!ValChk(argc,argv))
 		post("%s - %s: invalid directory name",thisName(),GetString(thisTag()));
 	else {
-		AtomList ndir;
+		dirref ndir;
 		if(abs) ndir(argc,argv);
 		else (ndir = curdir).Append(argc,argv);
 		if(!pl->MkDir(ndir,vcnt,dcnt)) {
@@ -427,7 +423,7 @@ V pool::m_chdir(I argc,const A *argv,BL abs)
 	if(!ValChk(argc,argv)) 
 		post("%s - %s: invalid directory name",thisName(),GetString(thisTag()));
 	else {
-		AtomList prv(curdir);
+		dirref prv(curdir);
 		if(abs) curdir(argc,argv);
 		else curdir.Append(argc,argv);
 		if(!pl->ChkDir(curdir)) {
@@ -454,11 +450,11 @@ V pool::m_updir(I argc,const A *argv)
 			post("%s - %s: invalid level specification - set to 1",thisName(),GetString(thisTag()));
 	}
 
-	AtomList prv(curdir);
+	dirref prv(curdir);
 
 	if(lvls > curdir.Count()) {
 		post("%s - %s: level exceeds directory depth - corrected",thisName(),GetString(thisTag()));
-		curdir();
+		curdir.Reset();
 	}
 	else
 		curdir.Part(0,curdir.Count()-lvls);
@@ -478,7 +474,7 @@ V pool::m_rmdir(I argc,const A *argv,BL abs)
 
 	if(!pl->RmDir(curdir)) 
 		post("%s - %s: directory couldn't be removed",thisName(),GetString(thisTag()));
-	curdir();
+	curdir.Reset();
 
 	echodir();
 }
@@ -505,7 +501,7 @@ V pool::m_seti(I argc,const A *argv)
 		post("%s - %s: invalid data values",thisName(),GetString(thisTag()));
 	}
 	else 
-		if(!pl->Seti(curdir,GetAInt(argv[0]),new AtomList(argc-1,argv+1)))
+		if(!pl->Set(curdir,GetAInt(argv[0]),new AtomList(argc-1,argv+1)))
 			post("%s - %s: value couldn't be set",thisName(),GetString(thisTag()));
 
 	echodir();
@@ -531,7 +527,7 @@ V pool::m_clri(I ix)
 	if(ix < 0)
 		post("%s - %s: invalid index",thisName(),GetString(thisTag()));
 	else {
-		if(!pl->Clri(curdir,ix))
+		if(!pl->Clr(curdir,ix))
 			post("%s - %s: value couldn't be cleared",thisName(),GetString(thisTag()));
 	}
 
@@ -574,7 +570,7 @@ V pool::m_get(I argc,const A *argv)
 
 		ToOutAnything(3,thisTag(),0,NULL);
 		if(absdir)
-			ToOutList(2,curdir);
+			ToOutList(2,curdir.Dir());
 		else
 			ToOutList(2,0,NULL);
 		if(r) {
@@ -595,11 +591,11 @@ V pool::m_geti(I ix)
 	if(ix < 0)
 		post("%s - %s: invalid index",thisName(),GetString(thisTag()));
 	else {
-		poolval *r = pl->Refi(curdir,ix);
+		poolval *r = pl->Ref(curdir,ix);
 
 		ToOutAnything(3,thisTag(),0,NULL);
 		if(absdir)
-			ToOutList(2,curdir);
+			ToOutList(2,curdir.Dir());
 		else
 			ToOutList(2,0,NULL);
 		if(r) {
@@ -617,7 +613,7 @@ V pool::m_geti(I ix)
 
 I pool::getrec(const t_symbol *tag,I level,BL order,get_t how,const AtomList &rdir)
 {
-	AtomList gldir(curdir);
+	dirref gldir(curdir);
 	gldir.Append(rdir);
 
 	I ret = 0;
@@ -638,7 +634,7 @@ I pool::getrec(const t_symbol *tag,I level,BL order,get_t how,const AtomList &rd
 		    else {
 			    for(I i = 0; i < cnt; ++i) {
 				    ToOutAnything(3,tag,0,NULL);
-				    ToOutList(2,absdir?gldir:rdir);
+				    ToOutList(2,absdir?gldir.Dir():rdir);
 				    ToOutAtom(1,k[i]);
 				    ToOutList(0,r[i]);
 			    }
@@ -722,7 +718,7 @@ V pool::m_ogetrec(I argc,const A *argv)
 
 I pool::getsub(const S *tag,I level,BL order,get_t how,const AtomList &rdir)
 {
-	AtomList gldir(curdir);
+	dirref gldir(curdir);
 	gldir.Append(rdir);
 	
 	I ret = 0;
@@ -735,13 +731,13 @@ I pool::getsub(const S *tag,I level,BL order,get_t how,const AtomList &rdir)
 	else {
 		I lv = level > 0?level-1:-1;
 		for(I i = 0; i < cnt; ++i) {
-			AtomList ndir(absdir?gldir:rdir);
+			AtomList ndir(absdir?gldir.Dir():rdir);
 			ndir.Append(*r[i]);
             ++ret;
 
 			if(how == get_norm) {
 				ToOutAnything(3,tag,0,NULL);
-				ToOutList(2,curdir);
+				ToOutList(2,curdir.Dir());
 				ToOutList(1,ndir);
 				ToOutBang(0);
 			}
@@ -872,8 +868,8 @@ V pool::m_printrec(I argc,const A *argv,BL fromroot)
 			post("%s - %s: invalid level specification - set to infinite",thisName(),GetString(tag));
 	}
 
-	AtomList svdir(curdir);
-    if(fromroot) curdir.Clear();
+	dirref svdir(curdir);
+    if(fromroot) curdir.Reset();
 
 	I cnt = getrec(tag,lvls,false,get_print);
     post("");
@@ -913,7 +909,7 @@ V pool::paste(const S *tag,I argc,const A *argv,BL repl)
 
 V pool::m_clrclip()
 {
-	if(clip) { delete clip; clip = NULL; }
+    if(clip) { pooldir::Free(clip); clip = NULL; }
 }
 
 
@@ -1094,12 +1090,6 @@ V pool::svrec(I argc,const A *argv,BL xml)
 }
 
 
-
-BL pool::KeyChk(const t_atom &a)
-{
-	return IsSymbol(a) || IsFloat(a) || IsInt(a);
-}
-
 BL pool::ValChk(I argc,const t_atom *argv)
 {
 	for(I i = 0; i < argc; ++i) {
@@ -1120,7 +1110,6 @@ V pool::ToOutAtom(I ix,const t_atom &a)
 	else
 		post("%s - %s type not supported!",thisName(),GetString(thisTag()));
 }
-
 
 
 pooldata *pool::GetPool(const S *s)

@@ -355,6 +355,9 @@
 			RelativePath=".\source\data.cpp">
 		</File>
 		<File
+			RelativePath=".\source\file.cpp">
+		</File>
+		<File
 			RelativePath=".\source\main.cpp">
 		</File>
 		<File
