@@ -422,8 +422,10 @@ static C *ReadAtom(C *c,A *a)
 	// check for word type (s = 0,1,2 ... int,float,symbol)
 	I s = 0;
 	for(; *c && !isspace(*c); ++c) {
-		if(!isdigit(*c)) 
-			s = (*c != '.' || s == 1)?2:1;
+		if(!isdigit(*c))
+            if(!s && (*c == '-' || *c == '+')) {} // minus or plus is ok
+            else
+			    s = (*c != '.' || s == 1)?2:1;
 	}
 
 	if(a) {
