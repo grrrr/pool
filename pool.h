@@ -79,7 +79,7 @@ public:
 	poolval *vals;
 };
 
-	class pooldata:
+class pooldata:
 	public flext
 {
 public:
