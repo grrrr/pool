@@ -17,7 +17,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #error You need at least flext version 0.3.4
 #endif
 
-#define POOL_VERSION "0.0.1a"
+#define POOL_VERSION "0.0.2"
 
 #define V void
 #define I int
@@ -43,6 +43,9 @@ public:
 	poolval *nxt;
 };
 
+class istream;
+class ostream;
+
 class pooldir
 {
 public:
@@ -61,6 +64,8 @@ public:
 	AtomList *GetVal(const A &key);
 	I GetAll(A *&keys,AtomList *&lst);
 	I GetSub(const t_atom **&dirs);
+	BL LdDir(istream &is,I depth);
+	BL SvDir(ostream &os,I depth,const AtomList &dir = AtomList());
 
 	A dir;
 	pooldir *nxt;
@@ -79,20 +84,21 @@ public:
 	BL Pop() { return --refs > 0; }
 
 	V Reset();
-	bool MkDir(const AtomList &d); 
-	bool ChkDir(const AtomList &d);
-	bool RmDir(const AtomList &d);
-	bool SvDir(const AtomList &d,const C *flnm,I depth,BL absdir);
+	BL MkDir(const AtomList &d); 
+	BL ChkDir(const AtomList &d);
+	BL RmDir(const AtomList &d);
 
-	bool Set(const AtomList &d,const A &key,AtomList *data);
-	bool Clr(const AtomList &d,const A &key);
-	bool ClrAll(const AtomList &d,BL rec,BL dironly = false);
+	BL Set(const AtomList &d,const A &key,AtomList *data);
+	BL Clr(const AtomList &d,const A &key);
+	BL ClrAll(const AtomList &d,BL rec,BL dironly = false);
 	AtomList *Get(const AtomList &d,const A &key);
 	I GetAll(const AtomList &d,A *&keys,AtomList *&lst);
 	I GetSub(const AtomList &d,const t_atom **&dirs);
 
-	bool Load(const C *flnm);
-	bool Save(const C *flnm);
+	BL LdDir(const AtomList &d,const C *flnm,I depth);
+	BL SvDir(const AtomList &d,const C *flnm,I depth,BL absdir);
+	BL Load(const C *flnm) { return LdDir(AtomList(),flnm,-1); }
+	BL Save(const C *flnm) { return SvDir(AtomList(),flnm,-1,true); }
 
 	I refs;
 	const S *sym;

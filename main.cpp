@@ -63,6 +63,10 @@ protected:
 	V m_load(I argc,const A *argv);
 	V m_save(I argc,const A *argv);
 
+	// load directories
+	V m_lddir(I argc,const A *argv);   // load values into current dir
+	V m_ldrec(I argc,const A *argv);   // load values recursively
+
 	// save directories
 	V m_svdir(I argc,const A *argv);   // save values in current dir
 	V m_svrec(I argc,const A *argv);   // save values recursively
@@ -118,6 +122,8 @@ private:
 	FLEXT_CALLBACK_V(m_getsub)
 	FLEXT_CALLBACK_V(m_load)
 	FLEXT_CALLBACK_V(m_save)
+	FLEXT_CALLBACK_V(m_lddir)
+	FLEXT_CALLBACK_V(m_ldrec)
 	FLEXT_CALLBACK_V(m_svdir)
 	FLEXT_CALLBACK_V(m_svrec)
 	FLEXT_CALLBACK_V(m_recv)
@@ -174,6 +180,8 @@ pool::pool(I argc,const A *argv):
 	FLEXT_ADDMETHOD_(0,"getsub",m_getsub);
 	FLEXT_ADDMETHOD_(0,"load",m_load);
 	FLEXT_ADDMETHOD_(0,"save",m_save);
+	FLEXT_ADDMETHOD_(0,"lddir",m_lddir);
+	FLEXT_ADDMETHOD_(0,"ldrec",m_ldrec);
 	FLEXT_ADDMETHOD_(0,"svdir",m_svdir);
 	FLEXT_ADDMETHOD_(0,"svrec",m_svrec);
 //	FLEXT_ADDMETHOD_(0,"recv",m_recv);
@@ -531,6 +539,42 @@ V pool::m_save(I argc,const A *argv)
 		post("%s - save: no filename given",thisName());
 	else if(!pl->Save(flnm))
 		post("%s - save: error saving data",thisName());
+
+	echodir();
+}
+
+V pool::m_lddir(I argc,const A *argv)
+{
+	const C *flnm = NULL;
+	if(argc > 0) {
+		if(argc > 1) post("%s - lddir: superfluous arguments ignored",thisName());
+		if(IsString(argv[0])) flnm = GetString(argv[0]);
+	}
+
+	if(!flnm)
+		post("%s - lddir: invalid filename",thisName());
+	else {
+		if(!pl->LdDir(curdir,flnm,0)) 
+		post("%s - lddir: directory couldn't be loaded",thisName());
+	}
+
+	echodir();
+}
+
+V pool::m_ldrec(I argc,const A *argv)
+{
+	const C *flnm = NULL;
+	if(argc > 0) {
+		if(argc > 1) post("%s - ldrec: superfluous arguments ignored",thisName());
+		if(IsString(argv[0])) flnm = GetString(argv[0]);
+	}
+
+	if(!flnm)
+		post("%s - ldrec: invalid filename",thisName());
+	else {
+		if(!pl->LdDir(curdir,flnm,-1)) 
+		post("%s - ldrec: directory couldn't be saved",thisName());
+	}
 
 	echodir();
 }

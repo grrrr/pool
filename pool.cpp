@@ -9,7 +9,10 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 */
 
 #include "pool.h"
+
 #include <string.h>
+#include <fstream.h>
+
 
 inline t_atom &SetAtom(t_atom &dst,const t_atom &src) { flext_base::CopyAtom(&dst,&src); return dst; }
 
@@ -40,11 +43,9 @@ static I compare(const A &a,const A &b)
 		case A_POINTER:
 			return a.a_w.w_gpointer == b.a_w.w_gpointer?0:(a.a_w.w_gpointer < b.a_w.w_gpointer?-1:1);
 #endif
-#ifdef _DEBUG
 		default:
-			post("pool - atom comparison: type not handled");
+			LOG("pool - atom comparison: type not handled");
 			return -1;
-#endif
 		}
 	}
 	else
@@ -216,13 +217,13 @@ I pooldir::GetAll(A *&keys,AtomList *&lst)
 	return cnt;
 }
 
-I pooldir::GetSub(const t_atom **&lst)
+I pooldir::GetSub(const A **&lst)
 {
 	I cnt = 0;
 	pooldir *ix = dirs;
 	for(; ix; ix = ix->nxt,++cnt);
 
-	lst = new const t_atom *[cnt];
+	lst = new const A *[cnt];
 
 	ix = dirs;
 	for(I i = 0; ix; ix = ix->nxt,++i) {
@@ -230,6 +231,58 @@ I pooldir::GetSub(const t_atom **&lst)
 	}
 
 	return cnt;
+}
+
+BL pooldir::LdDir(istream &is,I depth)
+{
+	return true;
+}
+
+
+static V WriteAtom(ostream &os,const A &a)
+{
+	switch(a.a_type) {
+	case A_FLOAT:
+		os << a.a_w.w_float;
+		break;
+#ifdef MAXMSP
+	case A_LONG:
+		os << a.a_w.w_long;
+		break;
+#endif
+	case A_SYMBOL:
+		os << flext_base::GetString(a.a_w.w_symbol);
+		break;
+	}
+}
+
+static V WriteAtoms(ostream &os,const AtomList &l)
+{
+	for(I i = 0; i < l.Count(); ++i) {
+		WriteAtom(os,l[i]);
+		os << ' ';
+	}
+}
+
+BL pooldir::SvDir(ostream &os,I depth,const AtomList &dir)
+{
+	{
+		for(poolval *ix = vals; ix; ix = ix->nxt) {
+			WriteAtoms(os,dir);
+			os << ", ";
+			WriteAtom(os,ix->key);
+			os << " , ";
+			WriteAtoms(os,*ix->data);
+			os << endl;
+		}
+	}
+	if(depth) {
+		I nd = depth > 0?depth-1:-1;
+		for(pooldir *ix = dirs; ix; ix = ix->nxt) {
+			ix->SvDir(os,nd,AtomList(dir).Append(ix->dir));
+		}
+	}
+	return true;
 }
 
 
@@ -255,28 +308,23 @@ V pooldata::Reset()
 	root.Clear(true);
 }
 
-bool pooldata::MkDir(const AtomList &d)
+BL pooldata::MkDir(const AtomList &d)
 {
 	root.AddDir(d);
 	return true;
 }
 
-bool pooldata::ChkDir(const AtomList &d)
+BL pooldata::ChkDir(const AtomList &d)
 {
 	return root.GetDir(d) != NULL;
 }
 
-bool pooldata::RmDir(const AtomList &d)
+BL pooldata::RmDir(const AtomList &d)
 {
 	return root.DelDir(d);
 }
 
-bool pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
-{
-	return false;
-}
-
-bool pooldata::Set(const AtomList &d,const A &key,AtomList *data)
+BL pooldata::Set(const AtomList &d,const A &key,AtomList *data)
 {
 	pooldir *pd = root.GetDir(d);
 	if(!pd) return false;
@@ -284,7 +332,7 @@ bool pooldata::Set(const AtomList &d,const A &key,AtomList *data)
 	return true;
 }
 
-bool pooldata::Clr(const AtomList &d,const A &key)
+BL pooldata::Clr(const AtomList &d,const A &key)
 {
 	pooldir *pd = root.GetDir(d);
 	if(!pd) return false;
@@ -292,7 +340,7 @@ bool pooldata::Clr(const AtomList &d,const A &key)
 	return true;
 }
 
-bool pooldata::ClrAll(const AtomList &d,BL rec,BL dironly)
+BL pooldata::ClrAll(const AtomList &d,BL rec,BL dironly)
 {
 	pooldir *pd = root.GetDir(d);
 	if(!pd) return false;
@@ -328,15 +376,53 @@ I pooldata::GetSub(const AtomList &d,const t_atom **&dirs)
 	}
 }
 
-bool pooldata::Load(const C *flnm)
+static const C *CnvFlnm(C *dst,const C *src,I sz)
 {
-	return false;
+#if defined(PD) && defined(NT)
+	I cnt = strlen(src);
+	if(cnt >= sz-1) return NULL;
+	for(I i = 0; i < cnt; ++i)
+		dst[i] = src[i] != '/'?src[i]:'\\';
+	dst[i] = 0;
+	return dst;
+#else
+	return src;
+#endif
 }
 
-bool pooldata::Save(const C *flnm)
+BL pooldata::LdDir(const AtomList &d,const C *flnm,I depth)
 {
-	return false;
+	pooldir *pd = root.GetDir(d);
+	if(pd) {
+		C tmp[1024];
+		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
+		if(t) {
+			ifstream fl(tmp);
+			return fl.good() && pd->LdDir(fl,depth);
+		}
+		else return false;
+	}
+	else
+		return false;
 }
+
+BL pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
+{
+	pooldir *pd = root.GetDir(d);
+	if(pd) {
+		C tmp[1024];
+		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
+		if(t) {
+			ofstream fl(t);
+			return fl.good() && pd->SvDir(fl,depth,absdir?d:AtomList());
+		}
+		else return false;
+	}
+	else
+		return false;
+}
+
+
 
 
 
