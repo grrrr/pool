@@ -163,9 +163,9 @@ pooldir *pooldata::CopyAll(const AtomList &d,I depth,BL cut)
 static const C *CnvFlnm(C *dst,const C *src,I sz)
 {
 #if defined(PD) && defined(NT)
-	I cnt = strlen(src);
+	I i,cnt = strlen(src);
 	if(cnt >= sz-1) return NULL;
-	for(I i = 0; i < cnt; ++i)
+	for(i = 0; i < cnt; ++i)
 		dst[i] = src[i] != '/'?src[i]:'\\';
 	dst[i] = 0;
 	return dst;
@@ -198,7 +198,9 @@ BL pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
 		const C *t = CnvFlnm(tmp,flnm,sizeof tmp);
 		if(t) {
 			ofstream fl(t);
-			return fl.good() && pd->SvDir(fl,depth,absdir?d:AtomList());
+			AtomList tmp;
+			if(absdir) tmp = d;
+			return fl.good() && pd->SvDir(fl,depth,tmp);
 		}
 		else return false;
 	}

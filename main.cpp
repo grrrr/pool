@@ -10,7 +10,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include "pool.h"
 
-#define POOL_VERSION "0.0.7"
+#define POOL_VERSION "0.1.0"
 
 class pool:
 	public flext_base

@@ -1,0 +1,56 @@
+# pool - hierarchical storage object for PD and Max/MSP
+# Copyright (C) 2002 Thomas Grill (xovo@gmx.net)
+#
+# Makefile for MSVC++ 6
+#
+# usage:
+# to build run "make -f makefile.pd-msvc"
+#
+
+!include config-pd-msvc.txt
+
+# includes
+INCPATH=/I"$(MSVCPATH)\include" /I"$(PDPATH)\src" /I"$(FLEXTPATH)"
+LIBPATH=/LIBPATH:"$(MSVCPATH)\lib" /LIBPATH:"$(PDPATH)\bin" /LIBPATH:"$(FLEXTPATH)"
+LIBS=pd.lib flext_t-pdwin.lib
+
+# compiler definitions and flags
+DEFS=/DPD /DNT 
+
+CFLAGS=/GR /GD /G6 /Ox /MT
+
+DIR=source
+
+# the rest can stay untouched
+# ----------------------------------------------
+
+# all the source files from the package
+SRCS= main.cpp data.cpp pool.cpp
+HDRS= pool.h
+
+# -----------------------------------------------
+
+NAME=pool
+
+all: $(OUTPATH) $(OUTPATH)\$(NAME).dll
+
+# remove build
+clean:
+	-del /s /q $(OUTPATH) > nul
+	-rmdir $(OUTPATH) > nul
+
+$(OUTPATH):
+	-mkdir $(OUTPATH) > nul
+
+{source}.cpp{$(OUTPATH)}.obj:
+	cl /c /LD $(CFLAGS) $(DEFS) $(INCPATH) $** /Fo$<
+
+{$(OUTPATH)}.obj{$(OUTPATH)}.dll:
+	link /DLL /out:$< /INCREMENTAL:NO $** $(LIBS) $(LIBPATH)
+	@-del $(OUTPATH)\*.exp
+	@-del $(OUTPATH)\*.lib
+	@-del temp.obj
+!ifdef INSTPATH
+	@-if not exist $(OBJPATH) mkdir $(INSTPATH)
+	copy $< $(INSTPATH) > nul
+!endif
