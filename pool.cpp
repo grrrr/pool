@@ -15,7 +15,8 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #include <ctype.h>
 #include <stdlib.h>
 
-inline t_atom &SetAtom(t_atom &dst,const t_atom &src) { flext_base::CopyAtom(&dst,&src); return dst; }
+namespace flext {
+
 
 inline I compare(I a,I b) { return a == b?0:(a < b?-1:1); }
 inline I compare(F a,F b) { return a == b?0:(a < b?-1:1); }
@@ -25,7 +26,7 @@ static I compare(const S *a,const S *b)
 	if(a == b)
 		return 0;
 	else
-		return strcmp(flext_base::GetString(a),flext_base::GetString(b));
+		return strcmp(GetString(a),GetString(b));
 }
 
 static I compare(const A &a,const A &b) 
@@ -78,7 +79,7 @@ poolval &poolval::Set(AtomList *d)
 pooldir::pooldir(const A &d):
 	dirs(NULL),vals(NULL),nxt(NULL)
 {
-	flext_base::CopyAtom(&dir,&d);
+	CopyAtom(&dir,&d);
 }
 
 pooldir::~pooldir()
@@ -274,7 +275,7 @@ static C *ReadAtom(C *c,A *a)
 		default: { // anything else is a symbol
 			C t = *c; *c = 0;
 			a->a_type = A_SYMBOL;
-			a->a_w.w_symbol = (S *)flext_base::MakeSymbol(m);
+			a->a_w.w_symbol = (S *)MakeSymbol(m);
 			*c = t;
 			break;
 		}
@@ -317,7 +318,7 @@ static V WriteAtom(ostream &os,const A &a)
 		break;
 #endif
 	case A_SYMBOL:
-		os << flext_base::GetString(a.a_w.w_symbol);
+		os << GetString(a.a_w.w_symbol);
 		break;
 	}
 }
@@ -523,7 +524,7 @@ BL pooldata::SvDir(const AtomList &d,const C *flnm,I depth,BL absdir)
 		return false;
 }
 
-
+}
 
 
 

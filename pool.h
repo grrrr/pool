@@ -29,8 +29,7 @@ typedef bool BL;
 typedef t_atom A;
 typedef t_symbol S;
 
-typedef flext_base::AtomList AtomList;
-
+namespace flext {
 
 class poolval
 {
@@ -110,5 +109,7 @@ public:
 private:
 	static t_atom nullatom;
 };
+
+}
 
 #endif
