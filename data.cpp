@@ -18,7 +18,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 pooldata::pooldata(const S *s):
 	sym(s),nxt(NULL),refs(0),
-	root(nullatom)
+	root(nullatom,NULL)
 {
 	LOG1("new pool %s",sym?flext_base::GetString(sym):"<private>");
 }
@@ -132,7 +132,7 @@ pooldir *pooldata::Copy(const AtomList &d,const A &key,BL cut)
 	if(pd) {
 		AtomList *val = pd->GetVal(key,cut);
 		if(val) {
-			pooldir *ret = new pooldir(nullatom);
+			pooldir *ret = new pooldir(nullatom,NULL);
 			ret->SetVal(key,val);
 			return ret;
 		}
@@ -147,7 +147,7 @@ pooldir *pooldata::CopyAll(const AtomList &d,I depth,BL cut)
 {
 	pooldir *pd = root.GetDir(d);
 	if(pd) {
-		pooldir *ret = new pooldir(nullatom);
+		pooldir *ret = new pooldir(nullatom,NULL);
 		if(pd->Copy(ret,depth,cut))
 			return ret;
 		else {

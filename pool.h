@@ -46,7 +46,7 @@ class pooldir:
 	public flext
 {
 public:
-	pooldir(const A &dir);
+	pooldir(const A &dir,pooldir *parent);
 	~pooldir();
 
 	V Clear(BL rec,BL dironly = false);
@@ -67,7 +67,7 @@ public:
 	I CntAll();
 	I GetAll(A *&keys,AtomList *&lst,BL cut = false);
 	I GetKeys(AtomList &keys);
-	I GetSub(const t_atom **&dirs);
+	I GetSub(const A **&dirs);
 
 	poolval *RefVal(const A &key);
 	
@@ -80,7 +80,7 @@ public:
 	A dir;
 	pooldir *nxt;
 
-	pooldir *dirs;
+	pooldir *parent,*dirs;
 	poolval *vals;
 };
 

@@ -78,8 +78,8 @@ poolval *poolval::Dup() const
 }
 
 
-pooldir::pooldir(const A &d):
-	dirs(NULL),vals(NULL),nxt(NULL)
+pooldir::pooldir(const A &d,pooldir *p):
+	parent(p),dirs(NULL),vals(NULL),nxt(NULL)
 {
 	CopyAtom(&dir,&d);
 }
@@ -108,7 +108,7 @@ pooldir *pooldir::AddDir(I argc,const A *argv)
 	}
 
 	if(c || !ix) {
-		pooldir *nd = new pooldir(argv[0]);
+		pooldir *nd = new pooldir(argv[0],this);
 		nd->nxt = ix;
 
 		if(prv) prv->nxt = nd;
