@@ -32,7 +32,7 @@ static I compare(const A &a,const A &b)
 			return compare(a.a_w.w_float,b.a_w.w_float);
 #ifdef MAXMSP
 		case A_LONG:
-			return compare(a.a_w.w_long,b.a_w.w_long);
+			return compare((I)a.a_w.w_long,(I)b.a_w.w_long);
 #endif
 		case A_SYMBOL:
 			return compare(a.a_w.w_symbol,b.a_w.w_symbol);

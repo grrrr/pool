@@ -133,7 +133,7 @@ pooldata *pool::head,*pool::tail;
 V pool::setup(t_class *)
 {
 	post("");
-	post("pool %s - hierarchic storage object, (C)2002 Thomas Grill",POOL_VERSION);
+	post("pool %s - hierarchical storage object, (C)2002 Thomas Grill",POOL_VERSION);
 	post("");
 
 	head = tail = NULL;
@@ -612,7 +612,8 @@ V pool::ToOutAtom(I ix,const t_atom &a)
 
 pooldata *pool::GetPool(const S *s)
 {
-	for(pooldata *pi = head; pi && pi->sym != s; pi = pi->nxt);
+	pooldata *pi = head;
+	for(; pi && pi->sym != s; pi = pi->nxt);
 
 	if(pi) {
 		pi->Push();
@@ -632,7 +633,8 @@ pooldata *pool::GetPool(const S *s)
 
 V pool::RmvPool(pooldata *p)
 {
-	for(pooldata *prv = NULL,*pi = head; pi && pi != p; prv = pi,pi = pi->nxt);
+	pooldata *prv = NULL,*pi = head;
+	for(; pi && pi != p; prv = pi,pi = pi->nxt);
 
 	if(pi && !pi->Pop()) {
 		if(prv) prv->nxt = pi->nxt;
