@@ -17,7 +17,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #error You need at least flext version 0.4.0
 #endif
 
-#define POOL_VERSION "0.0.4"
+#define POOL_VERSION "0.0.5"
 
 #include <iostream.h>
 

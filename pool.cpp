@@ -415,7 +415,7 @@ BL pooldir::LdDir(istream &is,I depth,BL mkdir)
 		r = r && ReadAtoms(is,*v,'\n') && v->Count();
 
 		if(r) {
-			if(d.Count() <= depth) {
+			if(depth < 0 || d.Count() <= depth) {
 				pooldir *nd = mkdir?AddDir(d):GetDir(d);
 				if(nd) {
 					nd->SetVal(k[0],v); v = NULL;
