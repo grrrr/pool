@@ -12,12 +12,12 @@ CONFIG=config-pd-linux.txt
 
 include $(CONFIG)
 
-FLEXTLIB=$(FLEXTPATH)/flext_t.a
+FLEXTLIB=$(FLEXTPATH)/flext.a
 
 # compiler+linker stuff	
 INCLUDES=$(PDPATH) 
-LIBPATH=$(PYTHONLIB)
-FLAGS=-DPD -DFLEXT_THREADS
+LIBPATH=
+FLAGS=-DPD 
 CFLAGS=-O6 -mcpu=pentiumpro
 #CFLAGS=-g
 LIBS=m util 

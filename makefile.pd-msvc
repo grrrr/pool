@@ -12,7 +12,7 @@
 # includes
 INCPATH=/I"$(MSVCPATH)\include" /I"$(PDPATH)\src" /I"$(FLEXTPATH)"
 LIBPATH=/LIBPATH:"$(MSVCPATH)\lib" /LIBPATH:"$(PDPATH)\bin" /LIBPATH:"$(FLEXTPATH)"
-LIBS=pd.lib flext_t-pdwin.lib
+LIBS=pd.lib flext-pdwin.lib
 
 # compiler definitions and flags
 DEFS=/DPD /DNT 
@@ -31,18 +31,19 @@ HDRS= pool.h
 # -----------------------------------------------
 
 NAME=pool
+DIR=.
 
 all: $(OUTPATH) $(OUTPATH)\$(NAME).dll
 
 # remove build
 clean:
-	-del /s /q $(OUTPATH) > nul
+	-del /q $(OUTPATH) > nul
 	-rmdir $(OUTPATH) > nul
 
 $(OUTPATH):
 	-mkdir $(OUTPATH) > nul
 
-{source}.cpp{$(OUTPATH)}.obj:
+{$(DIR)}.cpp{$(OUTPATH)}.obj:
 	cl /c /LD $(CFLAGS) $(DEFS) $(INCPATH) $** /Fo$<
 
 {$(OUTPATH)}.obj{$(OUTPATH)}.dll:
