@@ -12,6 +12,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include <string.h>
 #include <fstream.h>
+#include <iostream.h>
 
 
 inline t_atom &SetAtom(t_atom &dst,const t_atom &src) { flext_base::CopyAtom(&dst,&src); return dst; }

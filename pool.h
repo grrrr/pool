@@ -17,15 +17,17 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #error You need at least flext version 0.3.4
 #endif
 
-#define POOL_VERSION "0.0.2"
+#define POOL_VERSION "0.0.3"
 
-#define V void
-#define I int
-#define F float
-#define C char
-#define BL bool
-#define A t_atom
-#define S t_symbol
+#include <iostream.h>
+
+typedef void V;
+typedef int I;
+typedef float F;
+typedef char C;
+typedef bool BL;
+typedef t_atom A;
+typedef t_symbol S;
 
 typedef flext_base::AtomList AtomList;
 
@@ -42,9 +44,6 @@ public:
 	AtomList *data;
 	poolval *nxt;
 };
-
-class istream;
-class ostream;
 
 class pooldir
 {
