@@ -586,10 +586,10 @@ BL pooldir::SvDir(ostream &os,I depth,const AtomList &dir)
 
 class xmltag {
 public:
-    string tag;
+    string tag,attr;
     bool Ok() const { return tag.length() > 0; }
     bool operator ==(const C *t) const { return !tag.compare(t); }
-    void Clear() { tag.clear(); }
+    void Clear() { tag.clear(); attr.clear(); }
     enum { t_start,t_end,t_empty } type;
 };
 
@@ -600,7 +600,7 @@ static bool gettag(istream &is,xmltag &t)
         is.get();
         char tmp[256];
         is.getline(tmp,sizeof tmp,'>');
-        char *tb = tmp,*te = tmp+strlen(tmp)-1;
+        char *tb = tmp,*te = tmp+strlen(tmp)-1,*tf;
 
         for(; isspace(*tb); ++tb);
         if(*tb == '/') {
@@ -616,7 +616,11 @@ static bool gettag(istream &is,xmltag &t)
             else
                 t.type = xmltag::t_start;
         }
-        t.tag.assign(tb,te-tb+1);
+
+        for(tf = tb; tf <= te && *tf && !isspace(*tf); ++tf);
+        t.tag.assign(tb,tf-tb);
+        while(isspace(*tf)) ++tf;
+        t.attr.assign(tf,te-tf+1);
         return true;
     }
     else {
@@ -728,13 +732,20 @@ BL pooldir::LdDirXML(istream &is,I depth,BL mkdir)
                     indata = false;
                 }
             }
+#ifdef FLEXT_DEBUG
             else {
                 post("pool - unknown XML tag '%s'",tag.tag.c_str());
             }
+#endif
         }
+        else if(tag == "!DOCTYPE") {
+            // ignore
+        }
+#ifdef FLEXT_DEBUG
         else {
             post("pool - unknown XML tag '%s'",tag.tag.c_str());
         }
+#endif
     }
     return true;
 }

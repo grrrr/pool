@@ -251,11 +251,13 @@ BL pooldata::LdDirXML(const AtomList &d,const C *flnm,I depth,BL mkdir)
                 fl.getline(tmp,sizeof tmp);
                 ret = !strncmp(tmp,"<?xml",5);
             }
+/*
             if(ret) {
                 fl.getline(tmp,sizeof tmp);
                 // DOCTYPE need not be present / only external DOCTYPE is allowed!
                 ret = !strncmp(tmp,"<!DOCTYPE",9);
             }
+*/
             if(ret)
                 ret = pd->LdDirXML(fl,depth,mkdir);
             return ret;
