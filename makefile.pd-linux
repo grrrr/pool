@@ -30,7 +30,7 @@ LIBS=m util
 NAME=pool
 
 # all the source files from the package
-SRCS=main.cpp pool.cpp.data.cpp
+SRCS=main.cpp pool.cpp data.cpp
 HDRS=pool.h
 
 DIR=.
