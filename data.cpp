@@ -28,7 +28,7 @@ pooldata::~pooldata()
 	LOG1("free pool %s",sym?flext_base::GetString(sym):"<private>");
 }
 
-t_atom pooldata::nullatom = { A_NULL };
+const A pooldata::nullatom = { A_NULL };
 
 
 V pooldata::Reset()
@@ -74,6 +74,12 @@ BL pooldata::ClrAll(const AtomList &d,BL rec,BL dironly)
 	if(!pd) return false;
 	pd->Clear(rec,dironly);
 	return true;
+}
+
+flext::AtomList *pooldata::Peek(const AtomList &d,const A &key)
+{
+	pooldir *pd = root.GetDir(d);
+	return pd?pd->PeekVal(key):NULL;
 }
 
 flext::AtomList *pooldata::Get(const AtomList &d,const A &key)

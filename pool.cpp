@@ -193,6 +193,24 @@ V pooldir::SetVal(const A &key,AtomList *data,BL over)
 	}
 }
 
+poolval *pooldir::RefVal(const A &key)
+{
+	I c = 1;
+	poolval *ix = vals;
+	for(; ix; ix = ix->nxt) {
+		c = compare(key,ix->key);
+		if(c <= 0) break;
+	}
+
+	return c || !ix?NULL:ix;
+}
+
+flext::AtomList *pooldir::PeekVal(const A &key)
+{
+	poolval *ix = RefVal(key);
+	return ix?ix->data:NULL;
+}
+
 flext::AtomList *pooldir::GetVal(const A &key,BL cut)
 {
 	I c = 1;
