@@ -15,6 +15,8 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #include <ctype.h>
 #include <stdlib.h>
 
+#define VBITS 6
+#define DBITS 5
 
 inline I compare(I a,I b) { return a == b?0:(a < b?-1:1); }
 inline I compare(F a,F b) { return a == b?0:(a < b?-1:1); }
@@ -78,41 +80,56 @@ poolval *poolval::Dup() const
 }
 
 
-pooldir::pooldir(const A &d,pooldir *p):
-	parent(p),dirs(NULL),vals(NULL),nxt(NULL)
+pooldir::pooldir(const A &d,pooldir *p,I vcnt,I dcnt):
+	parent(p),nxt(NULL),
+	vbits(vcnt?Int2Bits(vcnt):VBITS),dbits(dcnt?Int2Bits(dcnt):DBITS),
+	vsize(1<<vbits),dsize(1<<dbits)
 {
+	dirs = new direntry[dsize];
+	ZeroMem(dirs,dsize*sizeof *dirs);
+	vals = new valentry[vsize];
+	ZeroMem(vals,vsize*sizeof *vals);
+
 	CopyAtom(&dir,&d);
 }
 
 pooldir::~pooldir()
 {
-	Clear(true);
+	Clear(true,false);
+		
 	if(nxt) delete nxt;
 }
 
 V pooldir::Clear(BL rec,BL dironly)
 {
-	if(rec && dirs) { delete dirs; dirs = NULL; }
-	if(!dironly && vals) { delete vals; vals = NULL; }
+	if(rec && dirs) { 
+		for(I i = 0; i < dsize; ++i) if(dirs[i].d) delete dirs[i].d;
+		delete[] dirs; dirs = NULL;
+	}
+	if(!dironly && vals) { 
+		for(I i = 0; i < vsize; ++i) if(vals[i].v) delete vals[i].v;
+		delete[] vals; vals = NULL;
+	}
 }
 
-pooldir *pooldir::AddDir(I argc,const A *argv)
+pooldir *pooldir::AddDir(I argc,const A *argv,I vcnt,I dcnt)
 {
 	if(!argc) return this;
 
-	I c = 1;
-	pooldir *prv = NULL,*ix = dirs;
+	I c = 1,dix = DIdx(argv[0]);
+	pooldir *prv = NULL,*ix = dirs[dix].d;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(argv[0],ix->dir);
 		if(c <= 0) break;
 	}
 
 	if(c || !ix) {
-		pooldir *nd = new pooldir(argv[0],this);
+		pooldir *nd = new pooldir(argv[0],this,vcnt,dcnt);
 		nd->nxt = ix;
 
 		if(prv) prv->nxt = nd;
-		else dirs = nd;
+		else dirs[dix].d = nd;
+		dirs[dix].cnt++;
 		ix = nd;
 	}
 
@@ -123,8 +140,8 @@ pooldir *pooldir::GetDir(I argc,const A *argv,BL rmv)
 {
 	if(!argc) return this;
 
-	I c = 1;
-	pooldir *prv = NULL,*ix = dirs;
+	I c = 1,dix = DIdx(argv[0]);
+	pooldir *prv = NULL,*ix = dirs[dix].d;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(argv[0],ix->dir);
 		if(c <= 0) break;
@@ -138,7 +155,8 @@ pooldir *pooldir::GetDir(I argc,const A *argv,BL rmv)
 		else if(rmv) {
 			pooldir *nd = ix->nxt;
 			if(prv) prv->nxt = nd;
-			else dirs = nd;
+			else dirs[dix].d = nd;
+			dirs[dix].cnt--;
 			ix->nxt = NULL;
 			return ix;
 		}
@@ -160,8 +178,8 @@ BL pooldir::DelDir(I argc,const A *argv)
 
 V pooldir::SetVal(const A &key,AtomList *data,BL over)
 {
-	I c = 1;
-	poolval *prv = NULL,*ix = vals;
+	I c = 1,vix = VIdx(key);
+	poolval *prv = NULL,*ix = vals[vix].v;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(key,ix->key);
 		if(c <= 0) break;
@@ -175,7 +193,8 @@ V pooldir::SetVal(const A &key,AtomList *data,BL over)
 			nv->nxt = ix;
 
 			if(prv) prv->nxt = nv;
-			else vals = nv;
+			else vals[vix].v = nv;
+			vals[vix].cnt++;
 		}
 	}
 	else if(over) { 
@@ -184,9 +203,12 @@ V pooldir::SetVal(const A &key,AtomList *data,BL over)
 		if(data)
 			ix->Set(data);
 		else {
+			// delete key
+		
 			poolval *nv = ix->nxt;
 			if(prv) prv->nxt = nv;
-			else vals = nv;
+			else vals[vix].v = nv;
+			vals[vix].cnt--;
 			ix->nxt = NULL;
 			delete ix;
 		}
@@ -195,8 +217,8 @@ V pooldir::SetVal(const A &key,AtomList *data,BL over)
 
 poolval *pooldir::RefVal(const A &key)
 {
-	I c = 1;
-	poolval *ix = vals;
+	I c = 1,vix = VIdx(key);
+	poolval *ix = vals[vix].v;
 	for(; ix; ix = ix->nxt) {
 		c = compare(key,ix->key);
 		if(c <= 0) break;
@@ -205,13 +227,17 @@ poolval *pooldir::RefVal(const A &key)
 	return c || !ix?NULL:ix;
 }
 
+
 poolval *pooldir::RefVali(I rix)
 {
-	I c = 0;
-	poolval *ix = vals;
-	for(; ix && c < rix; ix = ix->nxt,++c) {}
-
-	return c == rix?ix:NULL;
+	for(I vix = 0; vix < vsize; ++vix) 
+		if(rix > vals[vix].cnt) rix -= vals[vix].cnt;
+		else {
+			poolval *ix = vals[vix].v;
+			for(; ix && rix; ix = ix->nxt) --rix;
+			if(ix && !rix) return ix;
+		}
+	return NULL;
 }
 
 flext::AtomList *pooldir::PeekVal(const A &key)
@@ -222,8 +248,8 @@ flext::AtomList *pooldir::PeekVal(const A &key)
 
 flext::AtomList *pooldir::GetVal(const A &key,BL cut)
 {
-	I c = 1;
-	poolval *prv = NULL,*ix = vals;
+	I c = 1,vix = VIdx(key);
+	poolval *prv = NULL,*ix = vals[vix].v;
 	for(; ix; prv = ix,ix = ix->nxt) {
 		c = compare(key,ix->key);
 		if(c <= 0) break;
@@ -236,7 +262,8 @@ flext::AtomList *pooldir::GetVal(const A &key,BL cut)
 		if(cut) {
 			poolval *nv = ix->nxt;
 			if(prv) prv->nxt = nv;
-			else vals = nv;
+			else vals[vix].v = nv;
+			vals[vix].cnt--;
 			ix->nxt = NULL;
 			ret = ix->data; ix->data = NULL;
 			delete ix;
@@ -247,11 +274,10 @@ flext::AtomList *pooldir::GetVal(const A &key,BL cut)
 	}
 }
 
-I pooldir::CntAll()
+I pooldir::CntAll() const
 {
 	I cnt = 0;
-	poolval *ix = vals;
-	for(; ix; ix = ix->nxt,++cnt) {}
+	for(I vix = 0; vix < vsize; ++vix) cnt += vals[vix].cnt;
 	return cnt;
 }
 
@@ -260,10 +286,11 @@ I pooldir::GetKeys(AtomList &keys)
 	I cnt = CntAll();
 	keys(cnt);
 
-	poolval *ix = vals;
-	for(I i = 0; ix; ++i,ix = ix->nxt) 
-		SetAtom(keys[i],ix->key);
-
+	for(I vix = 0; vix < vsize; ++vix) {
+		poolval *ix = vals[vix].v;
+		for(I i = 0; ix; ++i,ix = ix->nxt) 
+			SetAtom(keys[i],ix->key);
+	}
 	return cnt;
 }
 
@@ -273,35 +300,42 @@ I pooldir::GetAll(A *&keys,AtomList *&lst,BL cut)
 	keys = new A[cnt];
 	lst = new AtomList[cnt];
 
-	poolval *ix = vals;
-	for(I i = 0; ix; ++i) {
-		SetAtom(keys[i],ix->key);
-		lst[i] = *ix->data;
+	for(I i = 0,vix = 0; vix < vsize; ++vix) {
+		poolval *ix = vals[vix].v;
+		for(; ix; ++i) {
+			SetAtom(keys[i],ix->key);
+			lst[i] = *ix->data;
 
-		if(cut) {
-			poolval *t = ix;
-			vals = ix = ix->nxt;
-			t->nxt = NULL; delete t;
+			if(cut) {
+				poolval *t = ix;
+				vals[vix].v = ix = ix->nxt;
+				vals[vix].cnt--;				
+				t->nxt = NULL; delete t;
+			}
+			else
+				ix = ix->nxt;
 		}
-		else
-			ix = ix->nxt;
 	}
-
 	return cnt;
 }
 
-I pooldir::GetSub(const A **&lst)
+
+I pooldir::CntSub() const
 {
 	I cnt = 0;
-	pooldir *ix = dirs;
-	for(; ix; ix = ix->nxt,++cnt) {}
+	for(I dix = 0; dix < dsize; ++dix) cnt += dirs[dix].cnt;
+	return cnt;
+}
+
+
+I pooldir::GetSub(const A **&lst)
+{
+	const I cnt = CntSub();
 	lst = new const A *[cnt];
-
-	ix = dirs;
-	for(I i = 0; ix; ix = ix->nxt,++i) {
-		lst[i] = &ix->dir;
+	for(I i = 0,dix = 0; dix < dsize; ++dix) {
+		pooldir *ix = dirs[dix].d;
+		for(; ix; ix = ix->nxt) lst[i++] = &ix->dir;
 	}
-
 	return cnt;
 }
 
@@ -310,15 +344,19 @@ BL pooldir::Paste(const pooldir *p,I depth,BL repl,BL mkdir)
 {
 	BL ok = true;
 
-	for(poolval *ix = p->vals; ix; ix = ix->nxt) {
-		SetVal(ix->key,new AtomList(*ix->data),repl);
+	for(I di = 0; di < dsize; ++di) {
+		for(poolval *ix = p->vals[di].v; ix; ix = ix->nxt) {
+			SetVal(ix->key,new AtomList(*ix->data),repl);
+		}
 	}
 
 	if(ok && depth) {
-		for(pooldir *dix = p->dirs; ok && dix; dix = dix->nxt) {
-			pooldir *ndir = mkdir?AddDir(1,&dix->dir):GetDir(1,&dix->dir);
-			if(ndir) { 
-				ok = ndir->Paste(dix,depth > 0?depth-1:depth,repl,mkdir);
+		for(I di = 0; di < dsize; ++di) {
+			for(pooldir *dix = p->dirs[di].d; ok && dix; dix = dix->nxt) {
+				pooldir *ndir = mkdir?AddDir(1,&dix->dir):GetDir(1,&dix->dir);
+				if(ndir) { 
+					ok = ndir->Paste(dix,depth > 0?depth-1:depth,repl,mkdir);
+				}
 			}
 		}
 	}
@@ -331,26 +369,30 @@ BL pooldir::Copy(pooldir *p,I depth,BL cut)
 	BL ok = true;
 
 	if(cut) {
-		if(p->vals) 
-			ok = false;
-		else
-			p->vals = vals, vals = NULL;
+		for(I vi = 0; vi < vsize; ++vi) {
+			for(poolval *ix = vals[vi].v; ix; ix = ix->nxt)
+				p->SetVal(ix->key,ix->data);
+			vals[vi].cnt = 0;
+			vals[vi].v = NULL;
+		}
 	}
 	else {
-		// inefficient!! p->SetVal has to search through list unnecessarily!!
-		for(poolval *ix = vals; ix; ix = ix->nxt) {
-			p->SetVal(ix->key,new AtomList(*ix->data));
+		for(I vi = 0; vi < vsize; ++vi) {
+			for(poolval *ix = vals[vi].v; ix; ix = ix->nxt) {
+				p->SetVal(ix->key,new AtomList(*ix->data));
+			}
 		}
 	}
 
 	if(ok && depth) {
-		// also quite inefficient for cut 
-		for(pooldir *dix = dirs; ok && dix; dix = dix->nxt) {
-			pooldir *ndir = p->AddDir(1,&dix->dir);
-			if(ndir)
-				ok = ndir->Copy(dix,depth > 0?depth-1:depth,cut);
-			else
-				ok = false;
+		for(I di = 0; di < dsize; ++di) {
+			for(pooldir *dix = dirs[di].d; ok && dix; dix = dix->nxt) {
+				pooldir *ndir = p->AddDir(1,&dix->dir);
+				if(ndir)
+					ok = ndir->Copy(dix,depth > 0?depth-1:depth,cut);
+				else
+					ok = false;
+			}
 		}
 	}
 
@@ -472,8 +514,8 @@ BL pooldir::LdDir(istream &is,I depth,BL mkdir)
 
 BL pooldir::SvDir(ostream &os,I depth,const AtomList &dir)
 {
-	{
-		for(poolval *ix = vals; ix; ix = ix->nxt) {
+	for(I vi = 0; vi < vsize; ++vi) {
+		for(poolval *ix = vals[vi].v; ix; ix = ix->nxt) {
 			WriteAtoms(os,dir);
 			os << ", ";
 			WriteAtom(os,ix->key);
@@ -484,8 +526,10 @@ BL pooldir::SvDir(ostream &os,I depth,const AtomList &dir)
 	}
 	if(depth) {
 		I nd = depth > 0?depth-1:-1;
-		for(pooldir *ix = dirs; ix; ix = ix->nxt) {
-			ix->SvDir(os,nd,AtomList(dir).Append(ix->dir));
+		for(I di = 0; di < dsize; ++di) {
+			for(pooldir *ix = dirs[di].d; ix; ix = ix->nxt) {
+				ix->SvDir(os,nd,AtomList(dir).Append(ix->dir));
+			}
 		}
 	}
 	return true;

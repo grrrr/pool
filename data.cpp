@@ -16,9 +16,9 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #include <stdlib.h>
 
 
-pooldata::pooldata(const S *s):
+pooldata::pooldata(const S *s,I vcnt,I dcnt):
 	sym(s),nxt(NULL),refs(0),
-	root(nullatom,NULL)
+	root(nullatom,NULL,vcnt,dcnt)
 {
 	LOG1("new pool %s",sym?flext_base::GetString(sym):"<private>");
 }
@@ -28,6 +28,7 @@ pooldata::~pooldata()
 	LOG1("free pool %s",sym?flext_base::GetString(sym):"<private>");
 }
 
+
 const A pooldata::nullatom = { A_NULL };
 
 
@@ -36,9 +37,9 @@ V pooldata::Reset()
 	root.Clear(true);
 }
 
-BL pooldata::MkDir(const AtomList &d)
+BL pooldata::MkDir(const AtomList &d,I vcnt,I dcnt)
 {
-	root.AddDir(d);
+	root.AddDir(d,vcnt,dcnt);
 	return true;
 }
 
@@ -117,6 +118,12 @@ I pooldata::GetAll(const AtomList &d,A *&keys,AtomList *&lst)
 	}
 }
 
+I pooldata::CntSub(const AtomList &d)
+{
+	pooldir *pd = root.GetDir(d);
+	return pd?pd->CntSub():0;
+}
+
 I pooldata::GetSub(const AtomList &d,const t_atom **&dirs)
 {
 	pooldir *pd = root.GetDir(d);
@@ -144,7 +151,7 @@ pooldir *pooldata::Copy(const AtomList &d,const A &key,BL cut)
 	if(pd) {
 		AtomList *val = pd->GetVal(key,cut);
 		if(val) {
-			pooldir *ret = new pooldir(nullatom,NULL);
+			pooldir *ret = new pooldir(nullatom,NULL,pd->VSize(),pd->DSize());
 			ret->SetVal(key,val);
 			return ret;
 		}
@@ -159,7 +166,8 @@ pooldir *pooldata::CopyAll(const AtomList &d,I depth,BL cut)
 {
 	pooldir *pd = root.GetDir(d);
 	if(pd) {
-		pooldir *ret = new pooldir(nullatom,NULL);
+		// What sizes should we choose here?
+		pooldir *ret = new pooldir(nullatom,NULL,pd->VSize(),pd->DSize());
 		if(pd->Copy(ret,depth,cut))
 			return ret;
 		else {

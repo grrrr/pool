@@ -10,7 +10,10 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #include "pool.h"
 
-#define POOL_VERSION "0.1.1pre"
+#define POOL_VERSION "0.2.0pre"
+
+#define VCNT 64
+#define DCNT 16
 
 class pool:
 	public flext_base
@@ -22,6 +25,8 @@ public:
 	~pool();
 
 	static V setup(t_classid);
+	
+	virtual BL Init();
 
 	pooldata *Pool() { return pl; }
 
@@ -58,6 +63,9 @@ protected:
 	V m_getall();	// only values
 	V m_getrec(I argc,const A *argv);	// also subdirectories
 	V m_getsub(I argc,const A *argv);	// only subdirectories
+	V m_ogetall();	// only values (ordered)
+	V m_ogetrec(I argc,const A *argv);	// also subdirectories (ordered)
+	V m_ogetsub(I argc,const A *argv);	// only subdirectories (ordered)
 	V m_cntall();	// only values
 	V m_cntrec(I argc,const A *argv);	// also subdirectories
 	V m_cntsub(I argc,const A *argv);	// only subdirectories
@@ -93,8 +101,8 @@ private:
 
 	V set(const S *tag,I argc,const A *argv,BL over);
 	V getdir(const S *tag);
-	I getrec(const S *tag,I level,BL cntonly = false,const AtomList &rdir = AtomList());
-	I getsub(const S *tag,I level,BL cntonly = false,const AtomList &rdir = AtomList());
+	I getrec(const S *tag,I level,BL order,BL cntonly = false,const AtomList &rdir = AtomList());
+	I getsub(const S *tag,I level,BL order,BL cntonly = false,const AtomList &rdir = AtomList());
 
 	V paste(const S *tag,I argc,const A *argv,BL repl);
 	V copy(const S *tag,I argc,const A *argv,BL cut);
@@ -104,9 +112,11 @@ private:
 	V echodir() { if(echo) getdir(MakeSymbol("echo")); }
 
 	BL priv,absdir,echo;
+	I vcnt,dcnt;
 	pooldata *pl;
 	AtomList curdir;
 	pooldir *clip;
+	const S *holdname;
 
 	static pooldata *head,*tail;
 
@@ -121,6 +131,8 @@ private:
 	FLEXT_ATTRVAR_B(echo)
 	FLEXT_ATTRGET_B(priv)
 //	FLEXT_ATTRGET_B(curdir)
+	FLEXT_ATTRVAR_I(vcnt)
+	FLEXT_ATTRVAR_I(dcnt)
 
 	FLEXT_CALLBACK(m_reset)
 
@@ -144,6 +156,9 @@ private:
 	FLEXT_CALLBACK(m_getall)
 	FLEXT_CALLBACK_V(m_getrec)
 	FLEXT_CALLBACK_V(m_getsub)
+	FLEXT_CALLBACK(m_ogetall)
+	FLEXT_CALLBACK_V(m_ogetrec)
+	FLEXT_CALLBACK_V(m_ogetsub)
 	FLEXT_CALLBACK(m_cntall)
 	FLEXT_CALLBACK_V(m_cntrec)
 	FLEXT_CALLBACK_V(m_cntsub)
@@ -175,7 +190,8 @@ pooldata *pool::head,*pool::tail;
 V pool::setup(t_classid c)
 {
 	post("");
-	post("pool %s - hierarchical storage object, (C)2002 Thomas Grill",POOL_VERSION);
+	post("pool %s - hierarchical storage object",POOL_VERSION);
+	post("(C)2002-2003 Thomas Grill");
 	post("");
 
 	head = tail = NULL;
@@ -184,6 +200,8 @@ V pool::setup(t_classid c)
 	FLEXT_CADDATTR_VAR1(c,"absdir",absdir);
 	FLEXT_CADDATTR_VAR1(c,"echodir",echo);
 	FLEXT_CADDATTR_GET(c,"private",priv);
+	FLEXT_CADDATTR_VAR1(c,"valcnt",vcnt);
+	FLEXT_CADDATTR_VAR1(c,"dircnt",dcnt);
 
 	FLEXT_CADDMETHOD_(c,0,"reset",m_reset);
 	FLEXT_CADDMETHOD_(c,0,"set",m_set);
@@ -207,6 +225,9 @@ V pool::setup(t_classid c)
 	FLEXT_CADDMETHOD_(c,0,"getall",m_getall);
 	FLEXT_CADDMETHOD_(c,0,"getrec",m_getrec);
 	FLEXT_CADDMETHOD_(c,0,"getsub",m_getsub);
+	FLEXT_CADDMETHOD_(c,0,"ogetall",m_ogetall);
+	FLEXT_CADDMETHOD_(c,0,"ogetrec",m_ogetrec);
+	FLEXT_CADDMETHOD_(c,0,"ogetsub",m_ogetsub);
 	FLEXT_CADDMETHOD_(c,0,"cntall",m_cntall);
 	FLEXT_CADDMETHOD_(c,0,"cntrec",m_cntrec);
 	FLEXT_CADDMETHOD_(c,0,"cntsub",m_cntsub);
@@ -231,9 +252,10 @@ V pool::setup(t_classid c)
 
 pool::pool(I argc,const A *argv):
 	absdir(true),echo(false),pl(NULL),
-	clip(NULL)
+	clip(NULL),
+	vcnt(VCNT),dcnt(DCNT)
 {
-	SetPool(argc >= 1 && IsSymbol(argv[0])?GetSymbol(argv[0]):NULL);
+	holdname = argc >= 1 && IsSymbol(argv[0])?GetSymbol(argv[0]):NULL;
 
 	AddInAnything();
 	AddOutList();
@@ -247,6 +269,15 @@ pool::~pool()
 	FreePool();
 }
 
+BL pool::Init()
+{
+	if(flext_base::Init()) {
+		SetPool(holdname);	
+		return true;
+	}
+	else return false;
+}
+
 V pool::SetPool(const S *s)
 {
 	if(pl) FreePool();
@@ -257,7 +288,7 @@ V pool::SetPool(const S *s)
 	}
 	else {
 		priv = true;
-		pl = new pooldata;
+		pl = new pooldata(NULL,vcnt,dcnt);
 	}
 }
 
@@ -316,7 +347,7 @@ V pool::m_mkdir(I argc,const A *argv,BL abs)
 		AtomList ndir;
 		if(abs) ndir(argc,argv);
 		else (ndir = curdir).Append(argc,argv);
-		if(!pl->MkDir(ndir)) {
+		if(!pl->MkDir(ndir,vcnt,dcnt)) {
 			post("%s - mkdir: directory couldn't be created",thisName());
 		}
 	}
@@ -491,7 +522,7 @@ V pool::m_geti(I ix)
 	echodir();
 }
 
-I pool::getrec(const S *tag,I level,BL cntonly,const AtomList &rdir)
+I pool::getrec(const S *tag,I level,BL order,BL cntonly,const AtomList &rdir)
 {
 	AtomList gldir(curdir);
 	gldir.Append(rdir);
@@ -527,7 +558,7 @@ I pool::getrec(const S *tag,I level,BL cntonly,const AtomList &rdir)
 		else {
 			I lv = level > 0?level-1:-1;
 			for(I i = 0; i < cnt; ++i) {
-				ret += getrec(tag,lv,cntonly,AtomList(rdir).Append(*r[i]));
+				ret += getrec(tag,lv,order,cntonly,AtomList(rdir).Append(*r[i]));
 			}
 			delete[] r;
 		}
@@ -538,7 +569,15 @@ I pool::getrec(const S *tag,I level,BL cntonly,const AtomList &rdir)
 
 V pool::m_getall()
 {
-	getrec(MakeSymbol("getall"),0);
+	getrec(MakeSymbol("getall"),0,false);
+	ToOutBang(3);
+
+	echodir();
+}
+
+V pool::m_ogetall()
+{
+	getrec(MakeSymbol("ogetall"),0,true);
 	ToOutBang(3);
 
 	echodir();
@@ -556,21 +595,41 @@ V pool::m_getrec(I argc,const A *argv)
 		else 
 			post("%s - getrec: invalid level specification - set to infinite",thisName());
 	}
-	getrec(MakeSymbol("getrec"),lvls);
+	getrec(MakeSymbol("getrec"),lvls,false);
 	ToOutBang(3);
 
 	echodir();
 }
 
 
-I pool::getsub(const S *tag,I level,BL cntonly,const AtomList &rdir)
+V pool::m_ogetrec(I argc,const A *argv)
+{
+	I lvls = -1;
+	if(argc > 0) {
+		if(CanbeInt(argv[0])) {
+			if(argc > 1)
+				post("%s - ogetrec: superfluous arguments ignored",thisName());
+			lvls = GetAInt(argv[0]);
+		}
+		else 
+			post("%s - ogetrec: invalid level specification - set to infinite",thisName());
+	}
+	getrec(MakeSymbol("ogetrec"),lvls,true);
+	ToOutBang(3);
+
+	echodir();
+}
+
+
+I pool::getsub(const S *tag,I level,BL order,BL cntonly,const AtomList &rdir)
 {
 	AtomList gldir(curdir);
 	gldir.Append(rdir);
 	
 	I ret = 0;
 
-	const A **r;
+	const A **r = NULL;
+	// CntSub is not used here because it doesn't allow checking for valid directory
 	I cnt = pl->GetSub(gldir,r);
 	if(!r) 
 		post("%s - %s: error retrieving directories",thisName(),GetString(tag));
@@ -588,7 +647,7 @@ I pool::getsub(const S *tag,I level,BL cntonly,const AtomList &rdir)
 			}
 
 			if(level != 0)
-				ret += getsub(tag,lv,cntonly,AtomList(rdir).Append(*r[i]));
+				ret += getsub(tag,lv,order,cntonly,AtomList(rdir).Append(*r[i]));
 		}
 		delete[] r;
 	}
@@ -609,7 +668,27 @@ V pool::m_getsub(I argc,const A *argv)
 			post("%s - getsub: invalid level specification - set to 0",thisName());
 	}
 
-	getsub(MakeSymbol("getsub"),lvls);
+	getsub(MakeSymbol("getsub"),lvls,false);
+	ToOutBang(3);
+
+	echodir();
+}
+
+
+V pool::m_ogetsub(I argc,const A *argv)
+{
+	I lvls = 0;
+	if(argc > 0) {
+		if(CanbeInt(argv[0])) {
+			if(argc > 1)
+				post("%s - ogetsub: superfluous arguments ignored",thisName());
+			lvls = GetAInt(argv[0]);
+		}
+		else 
+			post("%s - ogetsub: invalid level specification - set to 0",thisName());
+	}
+
+	getsub(MakeSymbol("ogetsub"),lvls,true); 
 	ToOutBang(3);
 
 	echodir();
@@ -619,7 +698,7 @@ V pool::m_getsub(I argc,const A *argv)
 V pool::m_cntall()
 {
 	const S *tag = MakeSymbol("cntall");
-	I cnt = getrec(tag,0,true);
+	I cnt = getrec(tag,0,false,true);
 	ToOutSymbol(3,tag);
 	ToOutBang(2);
 	ToOutBang(1);
@@ -643,7 +722,7 @@ V pool::m_cntrec(I argc,const A *argv)
 			post("%s - %s: invalid level specification - set to infinite",thisName(),GetString(tag));
 	}
 	
-	I cnt = getrec(tag,lvls,true);
+	I cnt = getrec(tag,lvls,false,true);
 	ToOutSymbol(3,tag);
 	ToOutBang(2);
 	ToOutBang(1);
@@ -668,7 +747,7 @@ V pool::m_cntsub(I argc,const A *argv)
 			post("%s - %s: invalid level specification - set to 0",thisName(),GetString(tag));
 	}
 
-	I cnt = getsub(tag,lvls,true);
+	I cnt = getsub(tag,lvls,false,true);
 	ToOutSymbol(3,tag);
 	ToOutBang(2);
 	ToOutBang(1);
