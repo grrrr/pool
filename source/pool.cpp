@@ -65,7 +65,6 @@ poolval::~poolval()
 {
 	if(data) delete data;
 
-//    if(nxt) delete nxt;
     FLEXT_ASSERT(nxt == NULL);
 }
 
@@ -95,7 +94,6 @@ pooldir::~pooldir()
 {
 	Reset(false);
 		
-//	if(nxt) delete nxt;
     FLEXT_ASSERT(nxt == NULL);
 }
 
