@@ -981,7 +981,7 @@ BL pooldir::SvDirXML(ostream &os,I depth,const AtomList &dir,I ind)
 		os << "<dir>" << endl;
 		indent(os,ind+i+1);
 		os << "<key>";
-		WriteAtom(os,dir[i]);
+		WriteAtom(os,dir[ind+i]);
 		os << "</key>" << endl;
 	}
 
