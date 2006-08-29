@@ -406,8 +406,8 @@ V pool::m_reset()
 
 V pool::getdir(const S *tag)
 {
-	ToOutAnything(3,tag,0,NULL);
-	ToOutList(2,curdir);
+	ToSysAnything(3,tag,0,NULL);
+	ToSysList(2,curdir);
 }
 
 V pool::m_getdir() { getdir(thisTag()); }
@@ -582,18 +582,18 @@ V pool::m_get(I argc,const A *argv)
 
 		poolval *r = pl->Ref(curdir,argv[0]);
 
-		ToOutAnything(3,thisTag(),0,NULL);
+		ToSysAnything(3,thisTag(),0,NULL);
 		if(absdir)
-			ToOutList(2,curdir);
+			ToSysList(2,curdir);
 		else
-			ToOutList(2,0,NULL);
+			ToSysList(2,0,NULL);
 		if(r) {
 			ToOutAtom(1,r->key);
-			ToOutList(0,*r->data);
+			ToSysList(0,*r->data);
 		}
 		else {
-			ToOutBang(1);
-			ToOutBang(0);
+			ToSysBang(1);
+			ToSysBang(0);
 		}
 	}
 
@@ -607,18 +607,18 @@ V pool::m_geti(I ix)
 	else {
 		poolval *r = pl->Refi(curdir,ix);
 
-		ToOutAnything(3,thisTag(),0,NULL);
+		ToSysAnything(3,thisTag(),0,NULL);
 		if(absdir)
-			ToOutList(2,curdir);
+			ToSysList(2,curdir);
 		else
-			ToOutList(2,0,NULL);
+			ToSysList(2,0,NULL);
 		if(r) {
 			ToOutAtom(1,r->key);
-			ToOutList(0,*r->data);
+			ToSysList(0,*r->data);
 		}
 		else {
-			ToOutBang(1);
-			ToOutBang(0);
+			ToSysBang(1);
+			ToSysBang(0);
 		}
 	}
 
@@ -647,10 +647,10 @@ I pool::getrec(const t_symbol *tag,I level,BL order,get_t how,const AtomList &rd
 			    post("%s - %s: error retrieving values",thisName(),GetString(tag));
 		    else {
 			    for(I i = 0; i < cnt; ++i) {
-				    ToOutAnything(3,tag,0,NULL);
-				    ToOutList(2,absdir?gldir:rdir);
+				    ToSysAnything(3,tag,0,NULL);
+				    ToSysList(2,absdir?gldir:rdir);
 				    ToOutAtom(1,k[i]);
-				    ToOutList(0,r[i]);
+				    ToSysList(0,r[i]);
 			    }
 			    delete[] k;
 			    delete[] r;
@@ -681,7 +681,7 @@ V pool::m_getall()
 {
 	AtomList l;
 	getrec(thisTag(),0,false,get_norm,l);
-	ToOutBang(3);
+	ToSysBang(3);
 
 	echodir();
 }
@@ -690,7 +690,7 @@ V pool::m_ogetall()
 {
 	AtomList l;
 	getrec(thisTag(),0,true,get_norm,l);
-	ToOutBang(3);
+	ToSysBang(3);
 
 	echodir();
 }
@@ -710,7 +710,7 @@ V pool::m_getrec(I argc,const A *argv)
 
 	AtomList l;
 	getrec(thisTag(),lvls,false,get_norm,l);
-	ToOutBang(3);
+	ToSysBang(3);
 
 	echodir();
 }
@@ -731,7 +731,7 @@ V pool::m_ogetrec(I argc,const A *argv)
 
 	AtomList l;
 	getrec(thisTag(),lvls,true,get_norm,l);
-	ToOutBang(3);
+	ToSysBang(3);
 
 	echodir();
 }
@@ -757,10 +757,10 @@ I pool::getsub(const S *tag,I level,BL order,get_t how,const AtomList &rdir)
             ++ret;
 
 			if(how == get_norm) {
-				ToOutAnything(3,tag,0,NULL);
-				ToOutList(2,curdir);
-				ToOutList(1,ndir);
-				ToOutBang(0);
+				ToSysAnything(3,tag,0,NULL);
+				ToSysList(2,curdir);
+				ToSysList(1,ndir);
+				ToSysBang(0);
 			}
 
 			if(level != 0) {
@@ -789,7 +789,7 @@ V pool::m_getsub(I argc,const A *argv)
 	
 	AtomList l;
 	getsub(thisTag(),lvls,false,get_norm,l);
-	ToOutBang(3);
+	ToSysBang(3);
 
 	echodir();
 }
@@ -810,7 +810,7 @@ V pool::m_ogetsub(I argc,const A *argv)
 
 	AtomList l;
 	getsub(thisTag(),lvls,true,get_norm,l); 
-	ToOutBang(3);
+	ToSysBang(3);
 
 	echodir();
 }
@@ -820,10 +820,10 @@ V pool::m_cntall()
 {
 	AtomList l;
 	I cnt = getrec(thisTag(),0,false,get_cnt,l);
-	ToOutSymbol(3,thisTag());
-	ToOutBang(2);
-	ToOutBang(1);
-	ToOutInt(0,cnt);
+	ToSysSymbol(3,thisTag());
+	ToSysBang(2);
+	ToSysBang(1);
+	ToSysInt(0,cnt);
 
 	echodir();
 }
@@ -843,10 +843,10 @@ V pool::m_cntrec(I argc,const A *argv)
 	
 	AtomList l;
 	I cnt = getrec(thisTag(),lvls,false,get_cnt,l);
-	ToOutSymbol(3,thisTag());
-	ToOutBang(2);
-	ToOutBang(1);
-	ToOutInt(0,cnt);
+	ToSysSymbol(3,thisTag());
+	ToSysBang(2);
+	ToSysBang(1);
+	ToSysInt(0,cnt);
 
 	echodir();
 }
@@ -867,10 +867,10 @@ V pool::m_cntsub(I argc,const A *argv)
 
 	AtomList l;
 	I cnt = getsub(thisTag(),lvls,false,get_cnt,l);
-	ToOutSymbol(3,thisTag());
-	ToOutBang(2);
-	ToOutBang(1);
-	ToOutInt(0,cnt);
+	ToSysSymbol(3,thisTag());
+	ToSysBang(2);
+	ToSysBang(1);
+	ToSysInt(0,cnt);
 
 	echodir();
 }
@@ -1138,11 +1138,11 @@ BL pool::ValChk(I argc,const t_atom *argv)
 V pool::ToOutAtom(I ix,const t_atom &a)
 {
 	if(IsSymbol(a))
-		ToOutSymbol(ix,GetSymbol(a));
+		ToSysSymbol(ix,GetSymbol(a));
 	else if(IsFloat(a))
-		ToOutFloat(ix,GetFloat(a));
+		ToSysFloat(ix,GetFloat(a));
 	else if(IsInt(a))
-		ToOutInt(ix,GetInt(a));
+		ToSysInt(ix,GetInt(a));
 	else
 		post("%s - %s type not supported!",thisName(),GetString(thisTag()));
 }
