@@ -17,12 +17,13 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 
 #if FLEXT_OS == FLEXT_OS_WIN
 #include <windows.h> // for charset conversion functions
-#else
+#elif FLEXT_OS == FLEXT_OS_MAC
+#include <Carbon/Carbon.h>
 #endif
 
 using namespace std;
 
-static bool UCS4toUTF8(wchar_t *src,char *sdst,int dstlen)
+static bool UCS4toUTF8(char *sdst,const wchar_t *src,int dstlen)
 {
     unsigned char *dst = (unsigned char *)sdst;
     unsigned char *max = dst+dstlen;
@@ -72,9 +73,9 @@ static bool UCS4toUTF8(wchar_t *src,char *sdst,int dstlen)
     return true;
 }
 
-static bool UTF8toUCS4(char *ssrc,wchar_t *dst,int dstlen)
+static bool UTF8toUCS4(wchar_t *dst,const char *ssrc,int dstlen)
 {
-    unsigned char *src = (unsigned char *)ssrc;
+    const unsigned char *src = (const unsigned char *)ssrc;
     wchar_t *max = dst+dstlen;
     for(;;) {
         if(*src < 128) {
@@ -102,7 +103,8 @@ static bool UTF8toUCS4(char *ssrc,wchar_t *dst,int dstlen)
             src += 6;
         }
         else
-            FLEXT_ASSERT(false);
+			// invalid string
+            return false;
 
         if(++dst >= max) return false;
     }
@@ -581,7 +583,7 @@ BL pooldir::Copy(pooldir *p,I depth,BL cut)
 
 static bool _isspace(char c) { return c > 0 && isspace(c); }
 
-static const char *ReadAtom(const char *c,A &a)
+static const char *ReadAtom(const char *c,A &a,bool utf8)
 {
 	// skip leading whitespace (NON-ASCII character are < 0)
 	while(*c && _isspace(*c)) ++c;
@@ -643,37 +645,8 @@ static const char *ReadAtom(const char *c,A &a)
             flext::SetFloat(a,fres);
     }
     // no, it's a symbol
-    else
-        flext::SetString(a,tmp);
-
-	return c;
-}
-
-static BL ParseAtoms(C *tmp,flext::AtomList &l)
-{
-    const int MAXATOMS = 1024;
-    int cnt = 0;
-    t_atom atoms[MAXATOMS];
-    for(const char *t = tmp; *t && cnt < MAXATOMS; ++cnt) {
-		t = ReadAtom(t,atoms[cnt]);
-        if(!t) break;
-    }
-    l(cnt,atoms);
-	return true;
-}
-
-static BL ParseAtoms(string &s,flext::AtomList &l) 
-{ 
-    return ParseAtoms((C *)s.c_str(),l); 
-}
-
-static bool ReadAtoms(istream &is,flext::AtomList &l,C del,bool utf8)
-{
-	char tmp[1024];
-	is.getline(tmp,sizeof tmp,del); 
-	if(is.eof() || !is.good()) 
-        return false;
     else {
+		const char *c;
         if(utf8) {
 #if FLEXT_OS == FLEXT_OS_WIN
             wchar_t wtmp[1024];
@@ -682,13 +655,73 @@ static bool ReadAtoms(istream &is,flext::AtomList &l,C del,bool utf8)
             err = WideCharToMultiByte(CP_ACP,0,wtmp,err,tmp,1024,NULL,FALSE);
             if(!err) return false;
             tmp[err] = 0;
+			c = tmp;
+#elif FLEXT_OS == FLEXT_OS_MAC
+            char ctmp[1024];
+
+			// is the output always MacRoman?
+			TextEncoding inconv = CreateTextEncoding(kTextEncodingUnicodeDefault,kTextEncodingDefaultVariant,kUnicodeUTF8Format);
+			TextEncoding outconv = CreateTextEncoding(kTextEncodingMacRoman,kTextEncodingDefaultVariant,kTextEncodingDefaultFormat);
+
+			TECObjectRef converter;
+			OSStatus status = TECCreateConverter(&converter,inconv,outconv);
+			if(status) return false;
+			
+			ByteCount inlen,outlen;
+			status = TECConvertText(
+			   converter,
+			   (ConstTextPtr)tmp,strlen(tmp),
+			   &inlen,
+			   (TextPtr)ctmp,sizeof(ctmp),
+			   &outlen
+			);
+			ctmp[outlen] = 0;
+	
+			TECDisposeConverter(converter);
+			c = ctmp;
+			if(status) return false;
 #else
-            // TODO: convert from UTF-8 to native codepage
-            #pragma message("UTF-8 decoding not implemented yet")
+            wchar_t wtmp[1024];
+			size_t len = mbstowcs(wtmp,tmp,1024);
+			if(len < 0) return false;
+			if(!UCS4toUTF8(tmp,wtmp,1024)) return false;
+			c = tmp;
 #endif
-        }
-        return ParseAtoms(tmp,l);
+		}
+		else 
+			c = tmp;
+        flext::SetString(a,c);
+	}
+
+	return c;
+}
+
+static BL ParseAtoms(C *tmp,flext::AtomList &l,bool utf8)
+{
+    const int MAXATOMS = 1024;
+    int cnt = 0;
+    t_atom atoms[MAXATOMS];
+    for(const char *t = tmp; *t && cnt < MAXATOMS; ++cnt) {
+		t = ReadAtom(t,atoms[cnt],utf8);
+        if(!t) break;
     }
+    l(cnt,atoms);
+	return true;
+}
+
+static BL ParseAtoms(string &s,flext::AtomList &l,bool utf8) 
+{ 
+    return ParseAtoms((C *)s.c_str(),l,utf8); 
+}
+
+static bool ReadAtoms(istream &is,flext::AtomList &l,C del,bool utf8)
+{
+	char tmp[1024];
+	is.getline(tmp,sizeof tmp,del); 
+	if(is.eof() || !is.good()) 
+        return false;
+    else
+        return ParseAtoms(tmp,l,utf8);
 }
 
 static bool WriteAtom(ostream &os,const A &a,bool utf8)
@@ -709,9 +742,38 @@ static bool WriteAtom(ostream &os,const A &a,bool utf8)
             if(!err) return false;
             tmp[err] = 0;
             c = tmp;
+#elif FLEXT_OS == FLEXT_OS_MAC
+            char tmp[1024];
+
+			// is the input always MacRoman?
+			TextEncoding inconv = CreateTextEncoding(kTextEncodingMacRoman,kTextEncodingDefaultVariant,kTextEncodingDefaultFormat);
+			TextEncoding outconv = CreateTextEncoding(kTextEncodingUnicodeDefault,kTextEncodingDefaultVariant,kUnicodeUTF8Format);
+
+			TECObjectRef converter;
+			OSStatus status = TECCreateConverter(&converter,inconv,outconv);
+			if(status) return false;
+			
+			ByteCount inlen,outlen;
+			status = TECConvertText(
+			   converter,
+			   (ConstTextPtr)c,strlen(c),
+			   &inlen,
+			   (TextPtr)tmp,sizeof(tmp),
+			   &outlen
+			);
+			tmp[outlen] = 0;
+	
+			TECDisposeConverter(converter);
+
+			if(status) return false;
+            c = tmp;
 #else
-            // TODO: convert from native codepage to UTF-8
-            #pragma message("UTF-8 encoding not implemented yet")
+            char tmp[1024];
+            wchar_t wtmp[1024];
+			if(!UTF8toUCS4(wtmp,c,1024)) return false;
+			size_t len = wcstombs(tmp,wtmp,1024);
+			if(len < 0) return false;
+            c = tmp;
 #endif
         }
 
@@ -943,14 +1005,14 @@ BL pooldir::LdDirXMLRec(istream &is,I depth,BL mkdir,AtomList &d)
                     if(v.Count())
                         post("pool - XML load: value data already given, ignoring new data");
                     else
-                        ret = ParseAtoms(s,v);
+                        ret = ParseAtoms(s,v,true);
                 }
                 else // inkey
                     if(inval) {
                         if(k.Count())
                             post("pool - XML load, value key already given, ignoring new key");
                         else
-                            ret = ParseAtoms(s,k);
+                            ret = ParseAtoms(s,k,true);
                     }
                     else {
                         t_atom &dkey = d[d.Count()-1];
@@ -960,7 +1022,7 @@ BL pooldir::LdDirXMLRec(istream &is,I depth,BL mkdir,AtomList &d)
                         if(*ds) 
                             post("pool - XML load: dir key already given, ignoring new key");
                         else
-                            ReadAtom(s.c_str(),dkey);
+                            ReadAtom(s.c_str(),dkey,true);
 
                         ret = true;
                     }
