@@ -20,7 +20,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #elif FLEXT_OS == FLEXT_OS_MAC
 #include <Carbon/Carbon.h>
 #else
-static bool UCS4toUTF8(char *sdst,const wchar_t *src,int dstlen)
+static bool WCStoUTF8(char *sdst,const wchar_t *src,int dstlen)
 {
     unsigned char *dst = (unsigned char *)sdst;
     unsigned char *max = dst+dstlen;
@@ -70,7 +70,7 @@ static bool UCS4toUTF8(char *sdst,const wchar_t *src,int dstlen)
     return true;
 }
 
-static bool UTF8toUCS4(wchar_t *dst,const char *ssrc,int dstlen)
+static bool UTF8toWCS(wchar_t *dst,const char *ssrc,int dstlen)
 {
     const unsigned char *src = (const unsigned char *)ssrc;
     wchar_t *max = dst+dstlen;
@@ -672,10 +672,8 @@ static const char *ReadAtom(const char *c,A &a,bool utf8)
 			ByteCount inlen,outlen;
 			status = TECConvertText(
 			   converter,
-			   (ConstTextPtr)tmp,strlen(tmp),
-			   &inlen,
-			   (TextPtr)ctmp,sizeof(ctmp),
-			   &outlen
+			   (ConstTextPtr)tmp,strlen(tmp),&inlen,
+			   (TextPtr)ctmp,sizeof(ctmp),&outlen
 			);
 			ctmp[outlen] = 0;
 	
@@ -686,7 +684,7 @@ static const char *ReadAtom(const char *c,A &a,bool utf8)
             wchar_t wtmp[1024];
 			size_t len = mbstowcs(wtmp,tmp,1024);
 			if(len < 0) return false;
-			if(!UCS4toUTF8(tmp,wtmp,1024)) return false;
+			if(!WCStoUTF8(tmp,wtmp,sizeof(tmp))) return false;
 			c = tmp;
 #endif
 		}
@@ -758,10 +756,8 @@ static bool WriteAtom(ostream &os,const A &a,bool utf8)
 			ByteCount inlen,outlen;
 			status = TECConvertText(
 			   converter,
-			   (ConstTextPtr)c,strlen(c),
-			   &inlen,
-			   (TextPtr)tmp,sizeof(tmp),
-			   &outlen
+			   (ConstTextPtr)c,strlen(c),&inlen,
+			   (TextPtr)tmp,sizeof(tmp),&outlen
 			);
 			tmp[outlen] = 0;
 	
@@ -772,8 +768,8 @@ static bool WriteAtom(ostream &os,const A &a,bool utf8)
 #else
             char tmp[1024];
             wchar_t wtmp[1024];
-			if(!UTF8toUCS4(wtmp,c,1024)) return false;
-			size_t len = wcstombs(tmp,wtmp,1024);
+			if(!UTF8toWCS(wtmp,c,1024)) return false;
+			size_t len = wcstombs(tmp,wtmp,sizeof(tmp));
 			if(len < 0) return false;
             c = tmp;
 #endif
@@ -781,6 +777,7 @@ static bool WriteAtom(ostream &os,const A &a,bool utf8)
 
         os << '"';
         for(; *c; ++c) {
+			// escape some special characters
             if(_isspace(*c) || *c == '\\' || *c == ',' || *c == '"')
                 os << '\\';
 	        os << *c;
@@ -1076,7 +1073,7 @@ BL pooldir::LdDirXMLRec(istream &is,I depth,BL mkdir,AtomList &d)
                         if(fnd == d.Count()-1)
                             post("pool - XML load: dir key must be given prior to values");
 
-                        // else: one directoy level has been left unintialized, ignore items
+                        // else: one directory level has been left unintialized, ignore items
                     }
                     else {
                         // only use first word of key
