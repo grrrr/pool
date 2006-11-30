@@ -19,10 +19,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #include <windows.h> // for charset conversion functions
 #elif FLEXT_OS == FLEXT_OS_MAC
 #include <Carbon/Carbon.h>
-#endif
-
-using namespace std;
-
+#else
 static bool UCS4toUTF8(char *sdst,const wchar_t *src,int dstlen)
 {
     unsigned char *dst = (unsigned char *)sdst;
@@ -110,6 +107,11 @@ static bool UTF8toUCS4(wchar_t *dst,const char *ssrc,int dstlen)
     }
     return true;
 }
+
+#endif
+
+using namespace std;
+
 
 
 inline I compare(I a,I b) { return a == b?0:(a < b?-1:1); }
