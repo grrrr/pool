@@ -667,27 +667,26 @@ void sift(T1 *a,T2 *b,int start,int count,int index,bool rev)
 	int root = start;                    // Point to a root node
 	int child;
 
-	while(root * 2 + 1 < count) {             // While the root has child(ren)...
-		child = root * 2 + 1;                 // ... point to its left child
+	while((child = root * 2 + 1) < count) {             // While the root has child(ren) point to its left child
 		// If the child has a sibling and the child's value is less than its sibling's...
-		if(child < count - 1 && smaller(a[child],a[child + 1],index) != rev)
+		if(child < count-1 && smaller(a[child],a[child+1],index) != rev)
 			child++;                // ... point to the right child instead
 			 
-		if(smaller(a[root],a[child],index) != rev) {                 // If the value in root is less than in child...
-			swap(a[root], a[child]);           // ... swap the values in root and child and...
-			if(b) swap(b[root], b[child]);
-			root = child;                // ... make root point to its child
-		}
-		else
-			return;
+		if(smaller(a[root],a[child],index) == rev) break;
+		
+		// If the value in root is less than in child...
+		swap(a[root], a[child]);           // ... swap the values in root and child and...
+		if(b) swap(b[root], b[child]);
+
+		root = child;                // ... make root point to its child
 	}
 }
 
 template <typename T1,typename T2>
 void heapsort(T1 *a,T2 *b,int count,int index,bool rev) 
 {
-	int start = count / 2 - 1;
-	int end = count - 1;
+	int start = count/2-1;
+	int end = count-1;
 
 	for(; start >= 0; start--)
 		sift(a, b, start, count, index, rev);
