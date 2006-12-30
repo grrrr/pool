@@ -731,9 +731,13 @@ int pool::getrec(const t_symbol *tag,int level,int order,bool rev,get_t how,cons
 			A *k;
 			Atoms *r;
 			int cnt = pl->GetAll(gldir,k,r);
-			if(!k) 
+			if(!k) {
+				FLEXT_ASSERT(!k);
 				post("%s - %s: error retrieving values",thisName(),GetString(tag));
+			}
 			else {
+				FLEXT_ASSERT(r);
+			
 				if(order >= 0)
 					orderpairs(k,r,cnt,order,rev);
 			
