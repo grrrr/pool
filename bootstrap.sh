@@ -15,6 +15,6 @@
     autoconf
 ) || 
 (
-    echo Bootstrapping failed.
+    echo Bootstrapping failed
     false
 )
