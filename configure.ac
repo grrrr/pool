@@ -105,6 +105,8 @@ if test $SYSTEM == pd; then
 	elif test $(uname -s) == Darwin; then
 		EXT_LDFLAGS="-flat_namespace -undefined suppress"
 		EXTENSION=.pd_darwin
+    elif ( test $(uname -s) == CYGWIN_NT-5.0 ) || ( test $(uname -s) == CYGWIN_NT-5.1 ) ; then
+		EXTENSION=.dll
 	fi
 
 elif test $SYSTEM == max; then
@@ -168,9 +170,7 @@ if test $(uname -s) == Linux; then
 	true
 elif test $(uname -s) == Darwin; then
 	FRAMEWORKS+=" ApplicationServices vecLib"
-elif test $(uname -s) == MINGW32_NT-5.0; then
-	EXT_CFLAGS+=" -mms-bitfields -mno-cygwin"
-elif test $(uname -s) == CYGWIN_NT-5.0; then
+elif ( test $(uname -s) == CYGWIN_NT-5.0 ) || ( test $(uname -s) == CYGWIN_NT-5.1 ) ; then
 	EXT_CFLAGS+=" -mms-bitfields -mno-cygwin"
 fi
 
