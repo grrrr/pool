@@ -54,6 +54,15 @@ Download, install and compile the package.
 Afterwards you can proceed with building this external.
 
 
+POSIX configure style
+---------------------
+./bootstrap.sh
+./configure --enable-system=pd_OR_max --with-sysdir=PATH_TO_PD_OR_MAX_HEADER_FILES --libdir=WHERE_TO_PUT_THE_EXTERNAL
+make
+sudo make install
+
+
+
 pd/Max - Windows - Microsoft Visual C, Borland C++, MinGW:
 ----------------------------------------------------------
 Start a command shell with your eventual build environment
