@@ -12,4 +12,5 @@ lib_LTLIBRARIES = @PACKAGE_NAME@.la
 # -module allows to avoid lib prefix for libraries
 # -shrext sets shared library extension as given by @EXTENSION@
 # -avoid-version avoids the creation of symlinks to versions of a shared library
-@PACKAGE_NAME@_la_LDFLAGS = @EXT_LDFLAGS@ -module -shrext @EXTENSION@ -avoid-version $(patsubst %,-L%,@LIBDIRS@) $(patsubst %,-l%,@LIBS@) $(patsubst %,-framework %,@FRAMEWORKS@) 
+@PACKAGE_NAME@_la_LDFLAGS = @EXT_LDFLAGS@ -no-undefined -module -shrext @EXTENSION@ -avoid-version $(patsubst %,-L%,@LIBDIRS@) $(patsubst %,-l%,@libs@) $(patsubst %,-framework %,@FRAMEWORKS@) 
+#@PACKAGE_NAME@_la_LIBADD = @libs@ 
