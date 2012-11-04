@@ -358,12 +358,13 @@ bool pool::Init()
 void pool::SetPool(const t_symbol *s)
 {
 	if(s) {
-		if(pl)
+		if(pl) {
 			// check if new symbol equals the current one
 			if(pl->sym == s) 
 				return;
 			else
 				FreePool();
+		}
 		pl = GetPool(s);
 	}
 	else {
