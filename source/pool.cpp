@@ -685,7 +685,7 @@ static const char *ReadAtom(const char *c,t_atom &a,bool utf8)
 #else
             wchar_t wtmp[1024];
 			size_t len = mbstowcs(wtmp,tmp,1024);
-			if(len < 0) return false;
+			if(len < 0) return NULL;
 			if(!WCStoUTF8(tmp,wtmp,sizeof(tmp))) return NULL;
 			c = tmp;
 #endif
