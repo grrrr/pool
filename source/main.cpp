@@ -240,7 +240,7 @@ private:
 	FLEXT_CALLBACK_V(m_svxrec)
 };
 
-FLEXT_NEW_V("pool",pool);
+FLEXT_NEW_V("pool",pool)
 
 
 pool::PoolMap pool::poolmap;	
