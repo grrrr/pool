@@ -40,7 +40,7 @@ protected:
     void mg_priv(bool &p) const { p = pl && pl->Private(); }
 
     // print some help message
-    static void m_help() { post("pool " POOL_VERSION " - hierarchical storage object, (C)2002-2008 Thomas Grill"); }
+    static void m_help() { post("pool " POOL_VERSION " - hierarchical storage object, (C)2002-2019 Thomas Grill"); }
 
 	// clear all data in pool
 	void m_reset();
