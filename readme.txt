@@ -1,6 +1,6 @@
 pool - a hierarchical storage object for PD and Max/MSP
 
-Copyright (c) 2002-2008 Thomas Grill (gr@grrrr.org)
+Copyright (c) 2002-2019 Thomas Grill (gr@grrrr.org)
 For information on usage and redistribution, and for a DISCLAIMER OF ALL
 WARRANTIES, see the file, "license.txt," in this distribution.  
 
@@ -63,7 +63,7 @@ sudo make install
 
 
 
-pd/Max - Windows - Microsoft Visual C, Borland C++, MinGW:
+pd/Max - Windows - Microsoft Visual C, MinGW:
 ----------------------------------------------------------
 Start a command shell with your eventual build environment
 (e.g. run vcvars32.bat for Microsoft Visual Studio)
@@ -85,6 +85,7 @@ bash ../flext/build.sh
 Version history:
 
 0.2.2:
+- fixed UTF-8 file load/save bug
 - fixed serious bug with clearing values and dirs. e.g. "clrall" and "clrrec" messages.
 - fixed double-free for clearing dirs and values
 - re-introduced a help message
