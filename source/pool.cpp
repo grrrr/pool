@@ -1,13 +1,9 @@
 /* 
 pool - hierarchical storage object for PD and Max/MSP
 
-Copyright (c) 2002-2008 Thomas Grill (gr@grrrr.org)
+Copyright (c) 2002-2019 Thomas Grill (gr@grrrr.org)
 For information on usage and redistribution, and for a DISCLAIMER OF ALL
 WARRANTIES, see the file, "license.txt," in this distribution.  
-
-$LastChangedRevision: 26 $
-$LastChangedDate$
-$LastChangedBy$
 */
 
 #include "pool.h"
@@ -19,8 +15,6 @@ $LastChangedBy$
 
 #if FLEXT_OS == FLEXT_OS_WIN
 #include <windows.h> // for charset conversion functions
-#elif FLEXT_OS == FLEXT_OS_MAC
-#include <Carbon/Carbon.h>
 #else
 static bool WCStoUTF8(char *sdst,const wchar_t *src,int dstlen)
 {
@@ -660,28 +654,6 @@ static const char *ReadAtom(const char *c,t_atom &a,bool utf8)
             if(!err) return NULL;
             tmp[err] = 0;
 			c = tmp;
-#elif FLEXT_OS == FLEXT_OS_MAC
-            char ctmp[1024];
-
-			// is the output always MacRoman?
-			TextEncoding inconv = CreateTextEncoding(kTextEncodingUnicodeDefault,kTextEncodingDefaultVariant,kUnicodeUTF8Format);
-			TextEncoding outconv = CreateTextEncoding(kTextEncodingMacRoman,kTextEncodingDefaultVariant,kTextEncodingDefaultFormat);
-
-			TECObjectRef converter;
-			OSStatus status = TECCreateConverter(&converter,inconv,outconv);
-			if(status) return NULL;
-			
-			ByteCount inlen,outlen;
-			status = TECConvertText(
-			   converter,
-			   (ConstTextPtr)tmp,strlen(tmp),&inlen,
-			   (TextPtr)ctmp,sizeof(ctmp),&outlen
-			);
-			ctmp[outlen] = 0;
-	
-			TECDisposeConverter(converter);
-			c = ctmp;
-			if(status) return NULL;
 #else
             wchar_t wtmp[1024];
 			size_t len = mbstowcs(wtmp,tmp,1024);
@@ -742,39 +714,16 @@ static bool WriteAtom(ostream &os,const t_atom &a,bool utf8)
 #if FLEXT_OS == FLEXT_OS_WIN
             char tmp[1024];
             wchar_t wtmp[1024];
-            int err = MultiByteToWideChar(CP_ACP,0,c,strlen(c),wtmp,1024);
+            int err = MultiByteToWideChar(CP_ACP,0,c,strlen(c),wtmp,sizeof(wtmp)/sizeof(*wtmp));
             if(!err) return false;
-            err = WideCharToMultiByte(CP_UTF8,0,wtmp,err,tmp,1024,NULL,FALSE);
+            err = WideCharToMultiByte(CP_UTF8,0,wtmp,err,tmp,sizeof(tmp),NULL,FALSE);
             if(!err) return false;
             tmp[err] = 0;
-            c = tmp;
-#elif FLEXT_OS == FLEXT_OS_MAC
-            char tmp[1024];
-
-			// is the input always MacRoman?
-			TextEncoding inconv = CreateTextEncoding(kTextEncodingMacRoman,kTextEncodingDefaultVariant,kTextEncodingDefaultFormat);
-			TextEncoding outconv = CreateTextEncoding(kTextEncodingUnicodeDefault,kTextEncodingDefaultVariant,kUnicodeUTF8Format);
-
-			TECObjectRef converter;
-			OSStatus status = TECCreateConverter(&converter,inconv,outconv);
-			if(status) return false;
-			
-			ByteCount inlen,outlen;
-			status = TECConvertText(
-			   converter,
-			   (ConstTextPtr)c,strlen(c),&inlen,
-			   (TextPtr)tmp,sizeof(tmp),&outlen
-			);
-			tmp[outlen] = 0;
-	
-			TECDisposeConverter(converter);
-
-			if(status) return false;
             c = tmp;
 #else
             char tmp[1024];
             wchar_t wtmp[1024];
-			if(!UTF8toWCS(wtmp,c,1024)) return false;
+			if(!UTF8toWCS(wtmp,c,sizeof(wtmp)/sizeof(*wtmp))) return false;
 			size_t len = wcstombs(tmp,wtmp,sizeof(tmp));
 			if(len < 0) return false;
             c = tmp;

@@ -1,3 +1,7 @@
+.DS_Store
+pd-darwin/
+max-darwin/
+
 # Compiled Object files
 *.slo
 *.lo

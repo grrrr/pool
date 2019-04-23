@@ -1,20 +1,16 @@
 /* 
 pool - hierarchical storage object for PD and Max/MSP
 
-Copyright (c) 2002-2008 Thomas Grill (gr@grrrr.org)
+Copyright (c) 2002-2019 Thomas Grill (gr@grrrr.org)
 For information on usage and redistribution, and for a DISCLAIMER OF ALL
 WARRANTIES, see the file, "license.txt," in this distribution.  
-
-$LastChangedRevision: 26 $
-$LastChangedDate$
-$LastChangedBy$
 */
 
 #include "pool.h"
 #include <string>
 #include <map>
 
-#define POOL_VERSION "0.2.2pre"
+#define POOL_VERSION "0.2.2"
 
 #define VCNT 32
 #define DCNT 8
