@@ -1,13 +1,195 @@
-make_files:
+stages:
+  - build
+  - package
+  - deploy
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+make_pd_linux_x86_64_f32:
   stage: build
   script:
-    - CPPFLAGS="-D FLEXT_INLINE -I $HOME/flext/source" make
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source" PDDIR=$HOME/pure-data/
   artifacts:
     paths:
-      - $CI_PROJECT_DIR/*.pd_*
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.pd_linux
     expire_in: 1h
 
-deploy_files:
-  stage: deploy
+make_pd_linux_x86_64_f64:
+  stage: build
   script:
-    - echo $CI_PROJECT_DIR/*.pd_*
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -DPD_FLOATSIZE=64" PDDIR=$HOME/pure-data/
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.pd_linux
+    expire_in: 1h
+
+make_pd_linux_rpi3_f32:
+  stage: build
+  script:
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source" PLATFORM=arm-linux-gnueabihf PDDIR=$HOME/pure-data/ extension=l_arm
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.l_arm
+    expire_in: 1h
+
+make_pd_linux_rpi3_f64:
+  stage: build
+  script:
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -DPD_FLOATSIZE=64" PLATFORM=arm-linux-gnueabihf PDDIR=$HOME/pure-data/ extension=l_arm
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.l_arm
+    expire_in: 1h
+
+make_pd_linux_rpi4_64_f32:
+  stage: build
+  script:
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source" PLATFORM=aarch64-linux-gnu PDDIR=$HOME/pure-data/ extension=l_aarch64
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.l_aarch64
+    expire_in: 1h
+
+make_pd_linux_rpi4_64_f64:
+  stage: build
+  script:
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -DPD_FLOATSIZE=64" PLATFORM=aarch64-linux-gnu PDDIR=$HOME/pure-data/ extension=l_aarch64
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.l_aarch64
+    expire_in: 1h
+
+make_pd_win64_f32:
+  stage: build
+  script:
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source" PLATFORM=x86_64-w64-mingw32 PDDIR=$HOME/pd-win64
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.dll
+    expire_in: 1h
+
+make_pd_win64_f64:
+  stage: build
+  script:
+    - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -DPD_FLOATSIZE=64" PLATFORM=x86_64-w64-mingw32 PDDIR=$HOME/pd-win64
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.dll
+    expire_in: 1h
+
+make_pd_osx_f32:
+  stage: build
+  script:
+    - make CXX=o64-clang++ CC=o64-clang PDDIR="$HOME/pure-data/" CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -arch x86_64 -arch x86_64h -arch arm64" LDFLAGS="-arch x86_64 -arch x86_64h -arch arm64"
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.pd_darwin
+    expire_in: 1h
+
+make_pd_osx_f64:
+  stage: build
+  script:
+    - make CXX=o64-clang++ CC=o64-clang PDDIR="$HOME/pure-data/" CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -DPD_FLOATSIZE=64 -arch x86_64 -arch x86_64h -arch arm64" LDFLAGS="-arch x86_64 -arch x86_64h -arch arm64"
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.pd_darwin
+    expire_in: 1h
+
+make_max_win64:
+  stage: build
+  script:
+    - mkdir -p build && cd build
+    - cmake .. -Wno-dev -DFLEXT_DIR=$CI_PROJECT_DIR/flext -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc -DCMAKE_SYSTEM_NAME="Windows" -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
+    - make
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.mxe*
+    expire_in: 1h
+
+make_max_osx:
+  stage: build
+  script:
+    - mkdir -p build && cd build
+    - cmake .. -Wno-dev -DFLEXT_DIR=$CI_PROJECT_DIR/flext -DCMAKE_CXX_COMPILER=o64-clang++ -DCMAKE_C_COMPILER=o64-clang -DCMAKE_SYSTEM_NAME="Darwin"   -DCMAKE_CXX_FLAGS="-arch x86_64 -arch x86_64h -arch arm64 -Wno-deprecated-declarations" -DCMAKE_SHARED_LINKER_FLAGS="-arch x86_64 -arch x86_64h -arch arm64"
+    - make
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME.mxo
+    expire_in: 1h
+
+package_pd_f32_deken:
+  stage: package
+  dependencies:
+    - make_pd_linux_x86_64_f32
+    - make_pd_win64_f32
+    - make_pd_osx_f32
+    - make_pd_linux_rpi3_f32
+    - make_pd_linux_rpi4_64_f32
+  script:
+    - mkdir -p build/$CI_PROJECT_NAME
+    - cp readme.txt license.txt *-help.pd *.dtd build/$CI_PROJECT_NAME || true
+    - mv $CI_PROJECT_DIR/$CI_PROJECT_NAME.pd_* $CI_PROJECT_DIR/$CI_PROJECT_NAME.l_* $CI_PROJECT_DIR/$CI_PROJECT_NAME.dll build/$CI_PROJECT_NAME
+    - deken package build/$CI_PROJECT_NAME --version `cat version.txt`
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME*.dek*
+    expire_in: 24h
+
+package_pd_f64_deken:
+  stage: package
+  dependencies:
+    - make_pd_linux_x86_64_f64
+    - make_pd_win64_f64
+    - make_pd_osx_f64
+    - make_pd_linux_rpi3_f64
+    - make_pd_linux_rpi4_64_f64
+  script:
+    - mkdir -p build/$CI_PROJECT_NAME
+    - cp readme.txt license.txt *-help.pd *.dtd build/$CI_PROJECT_NAME || true
+    - mv $CI_PROJECT_DIR/$CI_PROJECT_NAME.pd_* $CI_PROJECT_DIR/$CI_PROJECT_NAME.l_* $CI_PROJECT_DIR/$CI_PROJECT_NAME.dll build/$CI_PROJECT_NAME
+    - deken package build/$CI_PROJECT_NAME --version `cat version.txt`
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME*.dek*
+    expire_in: 24h
+
+package_max:
+  stage: package
+  dependencies:
+    - make_max_win64
+    - make_max_osx
+  script:
+    - for d in externals help init; do mkdir -p build/$CI_PROJECT_NAME/$d; done
+    - mv $CI_PROJECT_DIR/$CI_PROJECT_NAME.mxe* $CI_PROJECT_DIR/$CI_PROJECT_NAME.mxo build/$CI_PROJECT_NAME/externals
+    - cp readme.txt license.txt *.dtd build/$CI_PROJECT_NAME
+    - cp *.{max,}help build/$CI_PROJECT_NAME/help || true
+    - cd build && zip -r9 "$CI_PROJECT_DIR/$CI_PROJECT_NAME-`cat $CI_PROJECT_DIR/version.txt`.zip" $CI_PROJECT_NAME
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/$CI_PROJECT_NAME-*.zip
+    expire_in: 24h
+    
+push_github:
+    stage: deploy
+    script:
+        - git remote add github https://$GITHUB_ACCESS_TOKEN@github.com/$GITHUB_USERNAME/$CI_PROJECT_NAME.git || true
+        # we need some extra treatment because the gitlab-runner doesn't check out the full history
+        - git push github HEAD:master --tags
+
+upload_deken:
+    stage: deploy
+    dependencies:
+        - package_pd_f32_deken
+        - package_pd_f64_deken
+    script:
+        - deken upload --no-source-error $CI_PROJECT_DIR/$CI_PROJECT_NAME*.dek
+
+upload_owncloud:
+    stage: deploy
+    dependencies:
+        - package_pd_f32_deken
+        - package_pd_f64_deken
+        - package_max
+    script:
+        - oc-upload.sh pdmax-packages $CI_PROJECT_DIR/$CI_PROJECT_NAME*.dek* $CI_PROJECT_DIR/$CI_PROJECT_NAME-*.zip
