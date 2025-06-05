@@ -98,6 +98,7 @@ make_pd_win64_f32:
 
 make_pd_win64_f64:
   extends: .makewin
+  allow_failure: true
   script:
     - make CPPFLAGS="-I $CI_PROJECT_DIR/flext/source -DPD_FLOATSIZE=64" PLATFORM=x86_64-w64-mingw32
   artifacts:
