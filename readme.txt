@@ -1,6 +1,6 @@
 pool - a hierarchical storage object for PD and Max/MSP
 
-Copyright (c) 2002-2020 Thomas Grill (gr@grrrr.org)
+Copyright (c) 2002-2025 Thomas Grill (gr@grrrr.org)
 For information on usage and redistribution, and for a DISCLAIMER OF ALL
 WARRANTIES, see the file, "license.txt," in this distribution.  
 

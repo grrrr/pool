@@ -1,7 +1,7 @@
 /* 
 pool - hierarchical storage object for PD and Max/MSP
 
-Copyright (c) 2002-2019 Thomas Grill (gr@grrrr.org)
+Copyright (c) 2002-2025 Thomas Grill (gr@grrrr.org)
 For information on usage and redistribution, and for a DISCLAIMER OF ALL
 WARRANTIES, see the file, "license.txt," in this distribution.  
 */
@@ -10,7 +10,7 @@ WARRANTIES, see the file, "license.txt," in this distribution.
 #include <string>
 #include <map>
 
-#define POOL_VERSION "0.2.2"
+#define POOL_VERSION "0.2.3"
 
 #define VCNT 32
 #define DCNT 8
@@ -40,7 +40,7 @@ protected:
     void mg_priv(bool &p) const { p = pl && pl->Private(); }
 
     // print some help message
-    static void m_help() { post("pool " POOL_VERSION " - hierarchical storage object, (C)2002-2019 Thomas Grill"); }
+    static void m_help() { post("pool " POOL_VERSION " - hierarchical storage object, (C)2002-2025 Thomas Grill"); }
 
 	// clear all data in pool
 	void m_reset();

@@ -274,7 +274,7 @@ you should not input data as a direct reaction upon output.;
 #X obj 294 552 route bang;
 #X obj 499 666 print ------------;
 #X text 503 646 separator on bang;
-#X text 272 13 a hierarchical storage object \, (C)2002-2008 Thomas
+#X text 272 13 a hierarchical storage object \, (C)2002-2025 Thomas
 Grill;
 #X connect 0 0 67 0;
 #X connect 2 0 67 0;
