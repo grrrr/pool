@@ -5,7 +5,7 @@ For information on usage and redistribution, and for a DISCLAIMER OF ALL
 WARRANTIES, see the file, "license.txt," in this distribution.  
 
 Donations for further development of the package are highly appreciated.
-Visit https://www.paypal.com/xclick/business=gr%40grrrr.org&item_name=pool&no_note=1&tax=0&currency_code=EUR
+Visit https://www.paypal.com/donate?hosted_button_id=T55LFYFK7MTHU
 
 ----------------------------------------------------------------------------
 
